@@ -407,25 +407,24 @@ if auth_status:
         st.dataframe(table, use_container_width=True)
 
 
-
     elif page == "Leaderboard":
         st.title("🏆 Leaderboard")
         st.sidebar.divider()
 
-        # Build a mapping from username -> display name
-        cursor.execute("SELECT username, name FROM users")
-        name_map = {row[0]: row[1] for row in cursor.fetchall()}
+        # 1️⃣ Get all users from DB
+        cursor.execute("SELECT username FROM users ORDER BY username")
+        users = [row[0] for row in cursor.fetchall()]
 
-        # 2️⃣ Define round weights
+        # 2️⃣ Initialize points
+        user_points = {u: 0 for u in users}
+
+        # 3️⃣ Round weights
         ROUND_WEIGHTS = {
             "Wild Card": 1,
             "Divisional": 2,
             "Conference": 3,
             "Superbowl": 4
         }
-
-        # 3️⃣ Initialize user points
-        user_points = {u: 0 for u in users}
 
         # 4️⃣ Get all picks
         cursor.execute("SELECT username, game_id, pick FROM picks")
@@ -439,11 +438,12 @@ if auth_status:
                 if winner and pick == winner:
                     user_points[username] += ROUND_WEIGHTS.get(week, 1)
 
-        # 5️⃣ Display leaderboard sorted
+        # 5️⃣ Map username -> full name
+        cursor.execute("SELECT username, name FROM users")
+        name_map = {row[0]: row[1] for row in cursor.fetchall()}
+
+        # 6️⃣ Display leaderboard
         leaderboard = sorted(user_points.items(), key=lambda x: x[1], reverse=True)
-        # Display leaderboard with full names
-        st.table([
-            {"User": name_map.get(u, u), "Points": pts}  # fallback to username if missing
-            for u, pts in leaderboard
-        ])
+        st.table([{"User": name_map.get(u, u), "Points": pts} for u, pts in leaderboard])
+
 
