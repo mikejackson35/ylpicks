@@ -340,71 +340,62 @@ if auth_status:
         st.title("📊 Weekly Picks Grid")
         st.sidebar.divider()
 
-        # Sidebar round selector (ordered)
+        # Sidebar round selector
         week = st.sidebar.selectbox(
             "Select Round",
             [r for r in ROUND_ORDER if r in {g["week"] for g in GAMES}]
         )
 
-        # 1️⃣ Get games for this round FROM DB
-        cursor.execute("""
-            SELECT game_id, home, away, kickoff
-            FROM games
-            WHERE week = ?
-            ORDER BY kickoff
-        """, (week,))
-        week_games = cursor.fetchall()
+        week_games = [g for g in GAMES if g["week"] == week]
+        game_ids = [g["game_id"] for g in week_games]
 
-        if not week_games:
+        if not game_ids:
             st.info("No games for this round.")
-            st.stop()
+        else:
+            # 1️⃣ Get all users and their full names
+            cursor.execute("SELECT username, name FROM users")
+            users = cursor.fetchall()  # list of (username, name)
+            usernames = [u for u, _ in users]
+            name_map = {u: n for u, n in users}
 
-        game_ids = [g[0] for g in week_games]
+            # 2️⃣ Get picks for these games
+            placeholders = ",".join("?" * len(game_ids))
+            cursor.execute(
+                f"""
+                SELECT username, game_id, pick
+                FROM picks
+                WHERE game_id IN ({placeholders})
+                """,
+                game_ids
+            )
+            rows = cursor.fetchall()
 
-        # 2️⃣ Get all users (even if they have no picks)
-        cursor.execute("SELECT username FROM users ORDER BY username")
-        users = [row[0] for row in cursor.fetchall()]
+            # 3️⃣ Build lookup: username -> game_id -> pick
+            pick_map = {u: {gid: None for gid in game_ids} for u in usernames}
+            for username, game_id, pick in rows:
+                pick_map[username][game_id] = pick
 
-        # 3️⃣ Get picks for these games
-        placeholders = ",".join("?" * len(game_ids))
-        cursor.execute(
-            f"""
-            SELECT username, game_id, pick
-            FROM picks
-            WHERE game_id IN ({placeholders})
-            """,
-            game_ids
-        )
-        rows = cursor.fetchall()
+            # 4️⃣ Build display table with lock logic
+            now = datetime.utcnow()
+            table = []
+            for username, full_name in users:
+                row = {"User": full_name}  # display full name
 
-        # 4️⃣ Build lookup: user -> game -> pick
-        pick_map = {
-            user: {gid: None for gid in game_ids}
-            for user in users
-        }
+                for g in week_games:
+                    locked = now >= g["kickoff"]
 
-        for username, game_id, pick in rows:
-            pick_map[username][game_id] = pick
+                    if locked:
+                        row[g["game_id"]] = pick_map[username][g["game_id"]] or "—"
+                    else:
+                        row[g["game_id"]] = "🔒"
 
-        # 5️⃣ Build display table with lock logic
-        now = datetime.utcnow()
-        table = []
+                table.append(row)
 
-        for user in users:
-            row = {"User": user}
+            # 5️⃣ Display the table without index
+            df = pd.DataFrame(table)
+            df.reset_index(drop=True, inplace=True)
+            st.dataframe(df, use_container_width=True)
 
-            for game_id, home, away, kickoff in week_games:
-                kickoff_dt = datetime.fromisoformat(kickoff)
-                locked = now >= kickoff_dt
-
-                if locked:
-                    row[f"{away} @ {home}"] = pick_map[user][game_id] or "—"
-                else:
-                    row[f"{away} @ {home}"] = "🔒"
-
-            table.append(row)
-
-        st.dataframe(table, use_container_width=True)
 
 
     elif page == "Leaderboard":
