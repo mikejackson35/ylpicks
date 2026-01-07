@@ -166,10 +166,6 @@ auth_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
 name = st.session_state.get("name")
 
-st.write("DEBUG AUTH:", auth_status, username, name)
-
-
-
 # ----------------------------
 # SIGN UP (ONLY SHOWN WHEN NOT LOGGED IN)
 # ----------------------------
