@@ -30,32 +30,82 @@ CREATE TABLE IF NOT EXISTS picks (
     PRIMARY KEY (username, game_id)
 )
 """)
+
+# Games table (source of truth)
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS games (
+    game_id TEXT PRIMARY KEY,
+    week TEXT,
+    home TEXT,
+    away TEXT,
+    kickoff TEXT,
+    winner TEXT
+)
+""")
+
 conn.commit()
 
 # ----------------------------
 # SAMPLE GAMES
 # ----------------------------
 GAMES = [
-    {"game_id": "wc1", "week": "Wild Card", "home": "Panthers", "away": "Rams", "kickoff": datetime(2026, 1, 10, 8, 0)},
-    {"game_id": "wc2", "week": "Wild Card", "home": "Bears", "away": "Packers", "kickoff": datetime(2026, 1, 10, 8, 0)},
-    {"game_id": "wc3", "week": "Wild Card", "home": "Jaguars", "away": "Bills", "kickoff": datetime(2026, 1, 10, 8, 0)},
-    {"game_id": "wc4", "week": "Wild Card", "home": "Eagles", "away": "49ers", "kickoff": datetime(2026, 1, 11, 8, 0)},
-    {"game_id": "wc5", "week": "Wild Card", "home": "Patriots", "away": "Chargers", "kickoff": datetime(2026, 1, 11, 8, 0)},
-    {"game_id": "wc6", "week": "Wild Card", "home": "Steelers", "away": "Texans", "kickoff": datetime(2026, 1, 11, 8, 0)},
+    {"game_id": "LAR @ CAR", "week": "Wild Card", "home": "Panthers", "away": "Rams", "kickoff": datetime(2026, 1, 10, 15, 0)},
+    {"game_id": "CHI @ GB", "week": "Wild Card", "home": "Bears", "away": "Packers", "kickoff": datetime(2026, 1, 10, 19, 30)},
+    {"game_id": "JAX @ BUF", "week": "Wild Card", "home": "Jaguars", "away": "Bills", "kickoff": datetime(2026, 1, 10, 22, 0)},
+    {"game_id": "PHI @ SF", "week": "Wild Card", "home": "Eagles", "away": "49ers", "kickoff": datetime(2026, 1, 11, 15, 0)},
+    {"game_id": "NE @ LAC", "week": "Wild Card", "home": "Patriots", "away": "Chargers", "kickoff": datetime(2026, 1, 11, 19, 30)},
+    {"game_id": "PIT @ HOU", "week": "Wild Card", "home": "Steelers", "away": "Texans", "kickoff": datetime(2026, 1, 11, 22, 0)},
+    {"game_id": "Div1", "week": "Divisional", "home": "Team A", "away": "Team B", "kickoff": datetime(2026, 1, 17, 22, 0)},
+    {"game_id": "Div2", "week": "Divisional", "home": "Team C", "away": "Team D", "kickoff": datetime(2026, 1, 17, 15, 0)},
+    {"game_id": "Div3", "week": "Divisional", "home": "Team E", "away": "Team F", "kickoff": datetime(2026, 1, 18, 19, 30)},
+    {"game_id": "Div4", "week": "Divisional", "home": "Team G", "away": "Team H", "kickoff": datetime(2026, 1, 18, 22, 0)},
+    {"game_id": "Con1", "week": "Conference", "home": "Team A", "away": "Team B", "kickoff": datetime(2026, 1, 25, 19, 30)},
+    {"game_id": "Con2", "week": "Conference", "home": "Team C", "away": "Team D", "kickoff": datetime(2026, 1, 25, 22, 0)},
+    {"game_id": "SB", "week": "Superbowl", "home": "Team A", "away": "Team B", "kickoff": datetime(2026, 2, 1, 15, 0)}
+]
+
+def seed_games():
+    for g in GAMES:
+        cursor.execute(
+            """
+            INSERT OR IGNORE INTO games
+            (game_id, week, home, away, kickoff)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                g["game_id"],
+                g["week"],
+                g["home"],
+                g["away"],
+                g["kickoff"].isoformat()
+            )
+        )
+    conn.commit()
+
+
+# ----------------------------
+# PLAYOFF ROUND ORDER
+# ----------------------------
+ROUND_ORDER = [
+    "Wild Card",
+    "Divisional",
+    "Conference",
+    "Superbowl"
 ]
 
 # ----------------------------
 # GAME RESULTS (TEMP - MANUAL)
 # ----------------------------
-RESULTS = {
-    "wc1": "Rams",
-    "wc2": "Packers",
-    "wc3": "Bills",
-    "wc4": "49ers",
-    "wc5": "Patriots",
-    "wc6": "Steelers",
-}
+# RESULTS = {
+#     "LAR @ CAR": "Rams",
+#     "CHI @ GB": "Packers",
+#     "JAX @ BUF": "Bills",
+#     "PHI @ SF": "49ers",
+#     "NE @ LAC": "Patriots",
+#     "PIT @ HOU": "Steelers",
+# }
 
+ADMINS = {"mj"}  # set of usernames allowed to see admin tools
 
 # ----------------------------
 # HELPER FUNCTIONS
@@ -80,12 +130,28 @@ def add_test_user():
                        ("mj", "Mike", password_hash))
         conn.commit()
 
+import re
+
+def safe_key(s: str) -> str:
+    """
+    Converts a string into a Streamlit-safe widget key.
+    Replaces spaces with underscores, @ with 'at', and removes other special chars.
+    """
+    s = s.replace(' ', '_').replace('@', 'at')
+    # Remove anything that is not alphanumeric or underscore
+    s = re.sub(r'[^0-9a-zA-Z_]', '', s)
+    return s
+
+# conn.commit()
+
 
 # ----------------------------
 # SETUP
 # ----------------------------
 add_test_user()
 credentials = get_users_for_auth()
+
+seed_games()
 
 authenticator = stauth.Authenticate(
     credentials=credentials,
@@ -175,6 +241,29 @@ if auth_status:
             else:
                 st.error("Old password incorrect")
 
+    if username in ADMINS:
+        with st.expander("🛠 Admin: Set Game Winners"):
+            cursor.execute("SELECT game_id, home, away, winner FROM games")
+            games = cursor.fetchall()
+
+            for game_id, home, away, winner in games:
+                choice = st.selectbox(
+                    f"{away} @ {home}",
+                    ["", home, away],
+                    index=(["", home, away].index(winner) if winner else 0),
+                    key=f"winner_{safe_key(game_id)}"
+                )
+
+                if st.button("Save", key=f"save_winner_{safe_key(game_id)}"):
+                    cursor.execute(
+                        "UPDATE games SET winner=? WHERE game_id=?",
+                        (choice if choice else None, game_id)
+                    )
+                    conn.commit()
+                    st.success(f"Winner saved for {away} @ {home}")
+
+
+
     st.sidebar.divider()
     # PAGE NAVIGATION
     page = st.sidebar.radio(
@@ -183,12 +272,17 @@ if auth_status:
     )
 
     if page == "Make Picks":
-        st.title("🏈 Wilde NFL Pick'em 🎉")
         st.write(f"Hello **{name}**!")
-
+        st.title("Make Picks Here")
+        # st.write(f"Hello **{name}**!")
         st.sidebar.divider()
+
         # PICK'EM LOGIC
-        week = st.sidebar.selectbox("Select Round", sorted({g["week"] for g in GAMES}))
+        week = st.sidebar.selectbox(
+            "Select Round",
+            [r for r in ROUND_ORDER if r in {g["week"] for g in GAMES}]
+        )
+
         now = datetime.utcnow()
         week_games = [g for g in GAMES if g["week"] == week]
 
@@ -198,7 +292,9 @@ if auth_status:
             locked = now >= game["kickoff"]
             matchup = f'{game["away"]} @ {game["home"]}'
             st.subheader(matchup)
-            st.caption(f"Kickoff: {game['kickoff']} UTC")
+            kickoff_str = game["kickoff"].strftime("%A %I:%M %p").lstrip("0")
+            st.caption(f"{kickoff_str} EST")
+
 
             cursor.execute("SELECT pick FROM picks WHERE username=? AND game_id=?", (username, game["game_id"]))
             existing = cursor.fetchone()
@@ -208,13 +304,17 @@ if auth_status:
                     "Pick winner",
                     [game["away"], game["home"]],
                     index=(0 if existing and existing[0] == game["home"] else 1 if existing else 0),
-                    key=f"{game['game_id']}_{username}"
+                    key=f"{safe_key(game['game_id'])}_{safe_key(username)}"
                 )
-                if st.button("Save Pick", key=f"save_{game['game_id']}"):
-                    cursor.execute("INSERT OR REPLACE INTO picks (username, game_id, pick, timestamp) VALUES (?, ?, ?, ?)",
-                                (username, game["game_id"], choice, now.isoformat()))
-                    conn.commit()
-                    st.success(f"Saved pick: {choice}")
+            if st.button("Save Pick", key=f"save_{safe_key(username)}_{safe_key(game['game_id'])}"):
+
+                cursor.execute(
+                    "INSERT OR REPLACE INTO picks (username, game_id, pick, timestamp) VALUES (?, ?, ?, ?)",
+                    (username, game["game_id"], choice, now.isoformat())
+                )
+                conn.commit()
+                st.success(f"Saved pick: {choice}")
+
             else:
                 if existing:
                     st.info(f"Your pick: **{existing[0]}**")
@@ -231,86 +331,103 @@ if auth_status:
     elif page == "Weekly Grid":
         st.title("📊 Weekly Picks Grid")
         st.sidebar.divider()
-        # Sidebar round selector (same pattern as Make Picks)
+
+        # Sidebar round selector (ordered)
         week = st.sidebar.selectbox(
             "Select Round",
-            sorted({g["week"] for g in GAMES})
+            [r for r in ROUND_ORDER if r in {g["week"] for g in GAMES}]
         )
 
-        # Games for this round
-        week_games = [g for g in GAMES if g["week"] == week]
-        game_ids = [g["game_id"] for g in week_games]
+        # 1️⃣ Get games for this round FROM DB
+        cursor.execute("""
+            SELECT game_id, home, away, kickoff
+            FROM games
+            WHERE week = ?
+            ORDER BY kickoff
+        """, (week,))
+        week_games = cursor.fetchall()
 
-        if not game_ids:
+        if not week_games:
             st.info("No games for this round.")
-        else:
-            # Fetch all picks for these games
-            placeholders = ",".join("?" * len(game_ids))
-            cursor.execute(
-                f"""
-                SELECT username, game_id, pick
-                FROM picks
-                WHERE game_id IN ({placeholders})
-                """,
-                game_ids
-            )
-            rows = cursor.fetchall()
+            st.stop()
 
-            # Build grid structure
-            users = sorted({r[0] for r in rows})
-            grid = {user: {gid: "" for gid in game_ids} for user in users}
+        game_ids = [g[0] for g in week_games]
 
-            for username, game_id, pick in rows:
-                grid[username][game_id] = pick
+        # 2️⃣ Get all users (even if they have no picks)
+        cursor.execute("SELECT username FROM users ORDER BY username")
+        users = [row[0] for row in cursor.fetchall()]
 
-            # Create display table
-            table = []
-            for user in users:
-                row = {"User": user}
-                for g in week_games:
-                    row[g["game_id"]] = grid[user][g["game_id"]]
-                table.append(row)
+        # 3️⃣ Get picks for these games
+        placeholders = ",".join("?" * len(game_ids))
+        cursor.execute(
+            f"""
+            SELECT username, game_id, pick
+            FROM picks
+            WHERE game_id IN ({placeholders})
+            """,
+            game_ids
+        )
+        rows = cursor.fetchall()
 
-            st.dataframe(table, use_container_width=True)
+        # 4️⃣ Build lookup: user -> game -> pick
+        pick_map = {
+            user: {gid: None for gid in game_ids}
+            for user in users
+        }
+
+        for username, game_id, pick in rows:
+            pick_map[username][game_id] = pick
+
+        # 5️⃣ Build display table with lock logic
+        now = datetime.utcnow()
+        table = []
+
+        for user in users:
+            row = {"User": user}
+
+            for game_id, home, away, kickoff in week_games:
+                kickoff_dt = datetime.fromisoformat(kickoff)
+                locked = now >= kickoff_dt
+
+                if locked:
+                    row[f"{away} @ {home}"] = pick_map[user][game_id] or "—"
+                else:
+                    row[f"{away} @ {home}"] = "🔒"
+
+            table.append(row)
+
+        st.dataframe(table, use_container_width=True)
+
+
 
     elif page == "Leaderboard":
         st.title("🏆 Playoff Leaderboard")
 
-        # Fetch all picks
-        cursor.execute(
-            "SELECT username, game_id, pick FROM picks"
-        )
+        # 1️⃣ Get all users
+        cursor.execute("SELECT username FROM users")
+        users = [row[0] for row in cursor.fetchall()]
+        scores = {user: 0 for user in users}
+
+        # 2️⃣ Get picks joined to games with winners
+        cursor.execute("""
+            SELECT p.username, p.pick, g.winner
+            FROM picks p
+            JOIN games g ON p.game_id = g.game_id
+            WHERE g.winner IS NOT NULL
+        """)
         rows = cursor.fetchall()
 
-        if not rows:
-            st.info("No picks submitted yet.")
-        else:
-            scores = {}
+        # 3️⃣ Score
+        for username, pick, winner in rows:
+            if pick == winner:
+                scores[username] += 1
 
-            for username, game_id, pick in rows:
-                # Skip games without results yet
-                if game_id not in RESULTS:
-                    continue
+        # 4️⃣ Display
+        leaderboard = [
+            {"User": user, "Points": scores[user]}
+            for user in scores
+        ]
 
-                if username not in scores:
-                    scores[username] = 0
+        leaderboard.sort(key=lambda x: x["Points"], reverse=True)
 
-                if pick == RESULTS[game_id]:
-                    scores[username] += 1
-
-            if not scores:
-                st.info("No completed games yet.")
-            else:
-                leaderboard = [
-                    {"User": user, "Points": pts}
-                    for user, pts in scores.items()
-                ]
-
-                leaderboard = sorted(
-                    leaderboard,
-                    key=lambda x: x["Points"],
-                    reverse=True
-                )
-
-                st.dataframe(leaderboard, use_container_width=True)
-
+        st.dataframe(leaderboard, use_container_width=True)
