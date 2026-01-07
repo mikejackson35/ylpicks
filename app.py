@@ -160,12 +160,15 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=30,
 )
 
-login_result = authenticator.login(location="main")
-name = username = None
-auth_status = False
+authenticator.login(location="main")
 
-if login_result is not None:
-    username, auth_status, name = login_result
+auth_status = st.session_state.get("authentication_status")
+username = st.session_state.get("username")
+name = st.session_state.get("name")
+
+st.write("DEBUG AUTH:", auth_status, username, name)
+
+
 
 # ----------------------------
 # SIGN UP (ONLY SHOWN WHEN NOT LOGGED IN)
@@ -205,16 +208,19 @@ if auth_status is None:
 
 
 # ----------------------------
-# LOGOUT / INFO
+# LOGIN STATUS UI
 # ----------------------------
 if auth_status:
     authenticator.logout("Logout", "sidebar")
-    # st.sidebar.success(f"Logged in as {name}")
+    st.sidebar.success(f"Logged in as {name}")
+
+elif auth_status is False:
+    st.error("Username/password is incorrect")
+
 else:
-    if auth_status is False:
-        st.error("Username/password is incorrect")
-    else:
-        st.info("Please log in to access the app.")
+    st.info("Please log in to access the app.")
+
+
 
 # ----------------------------
 # APP
