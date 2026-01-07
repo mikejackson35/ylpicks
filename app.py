@@ -53,12 +53,12 @@ conn.commit()
 # SAMPLE GAMES
 # ----------------------------
 GAMES = [
-    {"game_id": "LAR @ CAR", "week": "Wild Card", "home": "Panthers", "away": "Rams", "kickoff": datetime(2026, 1, 8, 15, 0)},
-    {"game_id": "CHI @ GB", "week": "Wild Card", "home": "Bears", "away": "Packers", "kickoff": datetime(2026, 1, 8, 19, 30)},
-    {"game_id": "JAX @ BUF", "week": "Wild Card", "home": "Jaguars", "away": "Bills", "kickoff": datetime(2026, 1, 8, 22, 0)},
-    {"game_id": "PHI @ SF", "week": "Wild Card", "home": "Eagles", "away": "49ers", "kickoff": datetime(2026, 1, 8, 15, 0)},
-    {"game_id": "NE @ LAC", "week": "Wild Card", "home": "Patriots", "away": "Chargers", "kickoff": datetime(2026, 1, 8, 19, 30)},
-    {"game_id": "PIT @ HOU", "week": "Wild Card", "home": "Steelers", "away": "Texans", "kickoff": datetime(2026, 1, 8, 22, 0)},
+    {"game_id": "LAR @ CAR", "week": "Wild Card", "home": "Panthers", "away": "Rams", "kickoff": datetime(2026, 1, 6, 15, 0)},
+    {"game_id": "CHI @ GB", "week": "Wild Card", "home": "Bears", "away": "Packers", "kickoff": datetime(2026, 1, 6, 19, 30)},
+    {"game_id": "JAX @ BUF", "week": "Wild Card", "home": "Jaguars", "away": "Bills", "kickoff": datetime(2026, 1, 6, 22, 0)},
+    {"game_id": "PHI @ SF", "week": "Wild Card", "home": "Eagles", "away": "49ers", "kickoff": datetime(2026, 1, 6, 15, 0)},
+    {"game_id": "NE @ LAC", "week": "Wild Card", "home": "Patriots", "away": "Chargers", "kickoff": datetime(2026, 1, 6, 19, 30)},
+    {"game_id": "PIT @ HOU", "week": "Wild Card", "home": "Steelers", "away": "Texans", "kickoff": datetime(2026, 1, 6, 22, 0)},
     {"game_id": "Div1", "week": "Divisional", "home": "Team A", "away": "Team B", "kickoff": datetime(2026, 1, 17, 22, 0)},
     {"game_id": "Div2", "week": "Divisional", "home": "Team C", "away": "Team D", "kickoff": datetime(2026, 1, 17, 15, 0)},
     {"game_id": "Div3", "week": "Divisional", "home": "Team E", "away": "Team F", "kickoff": datetime(2026, 1, 18, 19, 30)},
