@@ -314,6 +314,7 @@ if auth_status:
                     index=(0 if existing and existing[0] == game["home"] else 1 if existing else 0),
                     key=f"{safe_key(game['game_id'])}_{safe_key(username)}"
                 )
+                conn.commit()
             if st.button("Save Pick", key=f"save_{safe_key(username)}_{safe_key(game['game_id'])}"):
 
                 cursor.execute(
