@@ -444,6 +444,22 @@ if auth_status:
 
         # 6️⃣ Display leaderboard
         leaderboard = sorted(user_points.items(), key=lambda x: x[1], reverse=True)
-        st.table([{"User": name_map.get(u, u), "Points": pts} for u, pts in leaderboard])
+        import pandas as pd
+
+        # Build DataFrame
+        df = pd.DataFrame([
+            {"User": name_map.get(u, u), "Points": pts} for u, pts in leaderboard
+        ])
+
+        # Display without index, right-align points
+        st.dataframe(
+            df.style.set_properties(
+                **{"text-align": "right"}, subset=["Points"]
+            ).set_properties(
+                **{"text-align": "left"}, subset=["User"]
+            ),
+            use_container_width=True
+        )
+
 
 
