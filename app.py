@@ -412,9 +412,9 @@ if auth_status:
         st.title("🏆 Leaderboard")
         st.sidebar.divider()
 
-        # 1️⃣ Get all users
-        cursor.execute("SELECT username FROM users ORDER BY username")
-        users = [row[0] for row in cursor.fetchall()]
+        # Build a mapping from username -> display name
+        cursor.execute("SELECT username, name FROM users")
+        name_map = {row[0]: row[1] for row in cursor.fetchall()}
 
         # 2️⃣ Define round weights
         ROUND_WEIGHTS = {
@@ -441,5 +441,9 @@ if auth_status:
 
         # 5️⃣ Display leaderboard sorted
         leaderboard = sorted(user_points.items(), key=lambda x: x[1], reverse=True)
-        st.table([{"User": u, "Points": pts} for u, pts in leaderboard])
+        # Display leaderboard with full names
+        st.table([
+            {"User": name_map.get(u, u), "Points": pts}  # fallback to username if missing
+            for u, pts in leaderboard
+        ])
 
