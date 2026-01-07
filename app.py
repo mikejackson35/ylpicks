@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS games (
 )
 """)
 
-conn.commit()
+# conn.commit()
 
 # ----------------------------
 # SAMPLE GAMES
