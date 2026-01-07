@@ -127,7 +127,7 @@ def add_test_user():
         password_hash = bcrypt.hashpw("password123".encode(), bcrypt.gensalt()).decode()
         cursor.execute("INSERT INTO users (username, name, password_hash) VALUES (?, ?, ?)",
                        ("mj", "Mike", password_hash))
-conn.commit()
+        conn.commit()
 
 import re
 
