@@ -444,22 +444,23 @@ if auth_status:
 
         # 6️⃣ Display leaderboard
         leaderboard = sorted(user_points.items(), key=lambda x: x[1], reverse=True)
+
         import pandas as pd
 
-        # Build DataFrame
+        # Build DataFrame, explicitly remove index
         df = pd.DataFrame([
             {"User": name_map.get(u, u), "Points": pts} for u, pts in leaderboard
         ])
 
-        # Display without index, right-align points
+        # Reset index so Streamlit won't show it
+        df.reset_index(drop=True, inplace=True)
+
+        # Use st.dataframe with style to align points right
         st.dataframe(
-            df.style.set_properties(
-                **{"text-align": "right"}, subset=["Points"]
-            ).set_properties(
-                **{"text-align": "left"}, subset=["User"]
-            ),
+            df.style.format({"Points": "{:>d}"}),  # right-align numbers
             use_container_width=True
         )
+
 
 
 
