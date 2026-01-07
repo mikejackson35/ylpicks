@@ -1,53 +1,59 @@
 import streamlit as st
-import sqlite3
 from datetime import datetime
 import bcrypt
 import streamlit_authenticator as stauth
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 
 # ----------------------------
 # DATABASE SETUP
 # ----------------------------
-conn = sqlite3.connect("pickem.db", check_same_thread=False)
+@st.cache_resource
+def get_connection():
+    return psycopg2.connect(
+        st.secrets["SUPABASE_DB_URL"],
+        sslmode="require",
+        cursor_factory=RealDictCursor
+    )
+
+conn = get_connection()
 cursor = conn.cursor()
+
 
 # Users table
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
     username TEXT PRIMARY KEY,
-    name TEXT,
-    password_hash TEXT
+    name TEXT NOT NULL,
+    password_hash TEXT NOT NULL
+)
+""")
+# games table
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS games (
+    game_id TEXT PRIMARY KEY,
+    week TEXT NOT NULL,
+    home TEXT NOT NULL,
+    away TEXT NOT NULL,
+    kickoff TIMESTAMPTZ NOT NULL,
+    winner TEXT
 )
 """)
 
-conn.commit()
-
-# Picks table
+# picks table
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS picks (
-    username TEXT,
-    game_id TEXT,
+    username TEXT REFERENCES users(username),
+    game_id TEXT REFERENCES games(game_id),
     pick TEXT,
-    timestamp TEXT,
+    timestamp TIMESTAMPTZ,
     PRIMARY KEY (username, game_id)
 )
 """)
 
 conn.commit()
 
-# Games table (source of truth)
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS games (
-    game_id TEXT PRIMARY KEY,
-    week TEXT,
-    home TEXT,
-    away TEXT,
-    kickoff TEXT,
-    winner TEXT
-)
-""")
-
-conn.commit()
 
 # ----------------------------
 # SAMPLE GAMES
