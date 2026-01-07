@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS users (
 )
 """)
 
+conn.commit()
+
 # Picks table
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS picks (
@@ -30,6 +32,8 @@ CREATE TABLE IF NOT EXISTS picks (
     PRIMARY KEY (username, game_id)
 )
 """)
+
+conn.commit()
 
 # Games table (source of truth)
 cursor.execute("""
