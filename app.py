@@ -380,7 +380,7 @@ if auth_status:
                 pick_map[username][game_id] = pick
 
             # 4️⃣ Build display table with lock logic
-            now = datetime.utcnow()
+            now = datetime.now()
             table = []
             for username, full_name in users:
                 row = {"User": full_name}  # display full name
