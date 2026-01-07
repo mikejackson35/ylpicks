@@ -244,6 +244,13 @@ if auth_status:
                 st.error("Old password incorrect")
 
     if username in ADMINS:
+        
+        cursor.execute("SELECT COUNT(*) FROM users")
+        st.sidebar.caption(f"Users in DB: {cursor.fetchone()[0]}")
+
+        cursor.execute("SELECT COUNT(*) FROM picks")
+        st.sidebar.caption(f"Picks in DB: {cursor.fetchone()[0]}")
+        
         with st.expander("🛠 Admin: Set Game Winners"):
             cursor.execute("SELECT game_id, home, away, winner FROM games")
             games = cursor.fetchall()
