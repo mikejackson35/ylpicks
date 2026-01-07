@@ -7,15 +7,21 @@ from psycopg2.extras import RealDictCursor
 
 
 # ----------------------------
-# DATABASE SETUP
+# Database Connection
 # ----------------------------
 @st.cache_resource
 def get_connection():
-    return psycopg2.connect(
-        st.secrets["SUPABASE_DB_URL"],
-        sslmode="require",
-        cursor_factory=RealDictCursor
-    )
+    """Returns a persistent connection to Supabase Postgres."""
+    try:
+        conn = psycopg2.connect(
+            st.secrets["SUPABASE_DB_URL"],  # must match your secrets
+            sslmode="require",
+            cursor_factory=RealDictCursor
+        )
+        return conn
+    except Exception as e:
+        st.error(f"Failed to connect to database: {e}")
+        raise
 
 conn = get_connection()
 cursor = conn.cursor()
