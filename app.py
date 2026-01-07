@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS users (
 )
 """)
 
+conn.commit()
+
 # Picks table
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS picks (
@@ -30,6 +32,8 @@ CREATE TABLE IF NOT EXISTS picks (
     PRIMARY KEY (username, game_id)
 )
 """)
+
+conn.commit()
 
 # Games table (source of truth)
 cursor.execute("""
@@ -99,19 +103,6 @@ ROUND_WEIGHTS = {
     "Conference": 3,
     "Superbowl": 4
 }
-
-
-# ----------------------------
-# GAME RESULTS (TEMP - MANUAL)
-# ----------------------------
-# RESULTS = {
-#     "LAR @ CAR": "Rams",
-#     "CHI @ GB": "Packers",
-#     "JAX @ BUF": "Bills",
-#     "PHI @ SF": "49ers",
-#     "NE @ LAC": "Patriots",
-#     "PIT @ HOU": "Steelers",
-# }
 
 ADMINS = {"mj"}  # set of usernames allowed to see admin tools
 
