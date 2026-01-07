@@ -5,26 +5,30 @@ import streamlit_authenticator as stauth
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-
 # ----------------------------
 # Database Connection
 # ----------------------------
-@st.cache_resource
 def get_connection():
-    """Returns a persistent connection to Supabase Postgres."""
     try:
         conn = psycopg2.connect(
-            st.secrets["SUPABASE_DB_URL"],  # must match your secrets
+            st.secrets["SUPABASE_DB_URL"],  # must be your full Supabase URI
             sslmode="require",
             cursor_factory=RealDictCursor
         )
         return conn
     except Exception as e:
-        st.error(f"Failed to connect to database: {e}")
-        raise
+        st.error(f"Failed to connect to Supabase: {e}")
+        return None
 
+# Try to connect
 conn = get_connection()
-cursor = conn.cursor()
+
+if conn is None:
+    st.stop()  # Stop the app if DB connection fails
+else:
+    cursor = conn.cursor()
+    st.success("Connected to Supabase successfully!")
+
 
 
 # Users table
