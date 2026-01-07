@@ -391,10 +391,9 @@ if auth_status:
 
                 table.append(row)
 
-            # 5️⃣ Display the table without index
-            df = pd.DataFrame(table)
-            df.reset_index(drop=True, inplace=True)
-            st.dataframe(df, use_container_width=True)
+            # 5️⃣ Display using st.table (removes index)
+            st.table(table)
+
 
 
 
