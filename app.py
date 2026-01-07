@@ -49,12 +49,12 @@ conn.commit()
 # SAMPLE GAMES
 # ----------------------------
 GAMES = [
-    {"game_id": "LAR @ CAR", "week": "Wild Card", "home": "Panthers", "away": "Rams", "kickoff": datetime(2026, 1, 10, 15, 0)},
-    {"game_id": "CHI @ GB", "week": "Wild Card", "home": "Bears", "away": "Packers", "kickoff": datetime(2026, 1, 10, 19, 30)},
-    {"game_id": "JAX @ BUF", "week": "Wild Card", "home": "Jaguars", "away": "Bills", "kickoff": datetime(2026, 1, 10, 22, 0)},
-    {"game_id": "PHI @ SF", "week": "Wild Card", "home": "Eagles", "away": "49ers", "kickoff": datetime(2026, 1, 11, 15, 0)},
-    {"game_id": "NE @ LAC", "week": "Wild Card", "home": "Patriots", "away": "Chargers", "kickoff": datetime(2026, 1, 11, 19, 30)},
-    {"game_id": "PIT @ HOU", "week": "Wild Card", "home": "Steelers", "away": "Texans", "kickoff": datetime(2026, 1, 11, 22, 0)},
+    {"game_id": "LAR @ CAR", "week": "Wild Card", "home": "Panthers", "away": "Rams", "kickoff": datetime(2026, 1, 7, 15, 0)},
+    {"game_id": "CHI @ GB", "week": "Wild Card", "home": "Bears", "away": "Packers", "kickoff": datetime(2026, 1, 7, 19, 30)},
+    {"game_id": "JAX @ BUF", "week": "Wild Card", "home": "Jaguars", "away": "Bills", "kickoff": datetime(2026, 1, 7, 22, 0)},
+    {"game_id": "PHI @ SF", "week": "Wild Card", "home": "Eagles", "away": "49ers", "kickoff": datetime(2026, 1, 7, 15, 0)},
+    {"game_id": "NE @ LAC", "week": "Wild Card", "home": "Patriots", "away": "Chargers", "kickoff": datetime(2026, 1, 7, 19, 30)},
+    {"game_id": "PIT @ HOU", "week": "Wild Card", "home": "Steelers", "away": "Texans", "kickoff": datetime(2026, 1, 7, 22, 0)},
     {"game_id": "Div1", "week": "Divisional", "home": "Team A", "away": "Team B", "kickoff": datetime(2026, 1, 17, 22, 0)},
     {"game_id": "Div2", "week": "Divisional", "home": "Team C", "away": "Team D", "kickoff": datetime(2026, 1, 17, 15, 0)},
     {"game_id": "Div3", "week": "Divisional", "home": "Team E", "away": "Team F", "kickoff": datetime(2026, 1, 18, 19, 30)},
@@ -92,6 +92,14 @@ ROUND_ORDER = [
     "Conference",
     "Superbowl"
 ]
+
+ROUND_WEIGHTS = {
+    "Wild Card": 1,
+    "Divisional": 2,
+    "Conference": 3,
+    "Superbowl": 4
+}
+
 
 # ----------------------------
 # GAME RESULTS (TEMP - MANUAL)
@@ -267,10 +275,9 @@ if auth_status:
 
     st.sidebar.divider()
     # PAGE NAVIGATION
-    page = st.sidebar.radio(
-        "",
-        ["Leaderboard", "Weekly Grid", "Make Picks"]
-    )
+    PAGES = ["Leaderboard", "Weekly Grid", "Make Picks"]
+    page = st.sidebar.radio("Go to", PAGES)
+
 
     if page == "Make Picks":
         st.write(f"Hello **{name}**!")
@@ -402,33 +409,37 @@ if auth_status:
 
 
     elif page == "Leaderboard":
-        st.title("🏆 Playoff Leaderboard")
+        st.title("🏆 Leaderboard")
+        st.sidebar.divider()
 
         # 1️⃣ Get all users
-        cursor.execute("SELECT username FROM users")
+        cursor.execute("SELECT username FROM users ORDER BY username")
         users = [row[0] for row in cursor.fetchall()]
-        scores = {user: 0 for user in users}
 
-        # 2️⃣ Get picks joined to games with winners
-        cursor.execute("""
-            SELECT p.username, p.pick, g.winner
-            FROM picks p
-            JOIN games g ON p.game_id = g.game_id
-            WHERE g.winner IS NOT NULL
-        """)
-        rows = cursor.fetchall()
+        # 2️⃣ Define round weights
+        ROUND_WEIGHTS = {
+            "Wild Card": 1,
+            "Divisional": 2,
+            "Conference": 3,
+            "Superbowl": 4
+        }
 
-        # 3️⃣ Score
-        for username, pick, winner in rows:
-            if pick == winner:
-                scores[username] += 1
+        # 3️⃣ Initialize user points
+        user_points = {u: 0 for u in users}
 
-        # 4️⃣ Display
-        leaderboard = [
-            {"User": user, "Points": scores[user]}
-            for user in scores
-        ]
+        # 4️⃣ Get all picks
+        cursor.execute("SELECT username, game_id, pick FROM picks")
+        all_picks = cursor.fetchall()
 
-        leaderboard.sort(key=lambda x: x["Points"], reverse=True)
+        for username, game_id, pick in all_picks:
+            cursor.execute("SELECT winner, week FROM games WHERE game_id=?", (game_id,))
+            result = cursor.fetchone()
+            if result:
+                winner, week = result
+                if winner and pick == winner:
+                    user_points[username] += ROUND_WEIGHTS.get(week, 1)
 
-        st.dataframe(leaderboard, use_container_width=True)
+        # 5️⃣ Display leaderboard sorted
+        leaderboard = sorted(user_points.items(), key=lambda x: x[1], reverse=True)
+        st.table([{"User": u, "Points": pts} for u, pts in leaderboard])
+
