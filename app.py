@@ -200,6 +200,7 @@ if auth_status is None:
                     conn.commit()
 
                     st.success("Account created! Please log in above.")
+                    st.rerun()
 
 
 # ----------------------------
@@ -236,6 +237,7 @@ if auth_status:
                     cursor.execute("UPDATE users SET password_hash=? WHERE username=?", (new_hash, username))
                     conn.commit()
                     st.success("Password updated successfully!")
+                    st.rerun()
                 else:
                     st.error("New passwords do not match")
             else:
