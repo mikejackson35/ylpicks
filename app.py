@@ -411,14 +411,18 @@ if auth_status:
         st.title("🏆 Leaderboard")
         st.sidebar.divider()
 
-        # 1️⃣ Get all users from DB
-        cursor.execute("SELECT username FROM users ORDER BY username")
-        users = [row[0] for row in cursor.fetchall()]
+        # 1️⃣ Get all users (username + full name)
+        cursor.execute("SELECT username, name FROM users ORDER BY name")
+        users = cursor.fetchall()  # list of (username, name)
 
-        # 2️⃣ Initialize points
-        user_points = {u: 0 for u in users}
+        # Mapping for easy lookup
+        name_map = {username: full_name for username, full_name in users}
+        usernames = [username for username, _ in users]
 
-        # 3️⃣ Round weights
+        # 2️⃣ Initialize points to 0 for all users
+        user_points = {u: 0 for u in usernames}
+
+        # 3️⃣ Define round weights
         ROUND_WEIGHTS = {
             "Wild Card": 1,
             "Divisional": 2,
@@ -438,28 +442,23 @@ if auth_status:
                 if winner and pick == winner:
                     user_points[username] += ROUND_WEIGHTS.get(week, 1)
 
-        # 5️⃣ Map username -> full name
-        cursor.execute("SELECT username, name FROM users")
-        name_map = {row[0]: row[1] for row in cursor.fetchall()}
-
-        # 6️⃣ Display leaderboard
-        leaderboard = sorted(user_points.items(), key=lambda x: x[1], reverse=True)
-
+        # 5️⃣ Build DataFrame with full names
         import pandas as pd
 
-        # Build DataFrame, explicitly remove index
-        df = pd.DataFrame([
-            {"User": name_map.get(u, u), "Points": pts} for u, pts in leaderboard
-        ])
+        df = pd.DataFrame({
+            "User": [name_map.get(u, u) for u in usernames],
+            "Points": [user_points[u] for u in usernames]
+        })
 
-        # Reset index so Streamlit won't show it
-        df.reset_index(drop=True, inplace=True)
+        # 6️⃣ Sort by points descending
+        df = df.sort_values("Points", ascending=False).reset_index(drop=True)
 
-        # Use st.dataframe with style to align points right
+        # 7️⃣ Display in Streamlit with Points column right-aligned
         st.dataframe(
             df.style.format({"Points": "{:>d}"}),  # right-align numbers
             use_container_width=True
         )
+
 
 
 
