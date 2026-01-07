@@ -156,7 +156,7 @@ seed_games()
 authenticator = stauth.Authenticate(
     credentials=credentials,
     cookie_name="pickem_cookie",
-    key="supersecretkey",
+    key=st.secrets["auth_key"],
     cookie_expiry_days=30,
 )
 
@@ -165,8 +165,7 @@ name = username = None
 auth_status = False
 
 if login_result is not None:
-    name, auth_status, username = login_result
-
+    username, auth_status, name = login_result
 
 # ----------------------------
 # SIGN UP (ONLY SHOWN WHEN NOT LOGGED IN)
