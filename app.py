@@ -140,7 +140,7 @@ def add_test_user():
         password_hash = bcrypt.hashpw("password123".encode(), bcrypt.gensalt()).decode()
         cursor.execute("INSERT INTO users (username, name, password_hash) VALUES (?, ?, ?)",
                        ("mj", "Mike", password_hash))
-        conn.commit()
+conn.commit()
 
 import re
 
@@ -154,7 +154,7 @@ def safe_key(s: str) -> str:
     s = re.sub(r'[^0-9a-zA-Z_]', '', s)
     return s
 
-# conn.commit()
+conn.commit()
 
 
 # ----------------------------
