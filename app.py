@@ -184,7 +184,7 @@ authenticator = stauth.Authenticate(
     30
 )
 
-authenticator.login(location="main")
+authenticator.login("Login", "main")
 
 auth_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
