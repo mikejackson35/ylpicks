@@ -136,9 +136,9 @@ def get_users_for_auth():
 def add_test_user():
     cursor.execute("SELECT COUNT(*) AS count FROM users")
     if cursor.fetchone()["count"] == 0:
-        # Hash the password using bcrypt directly
+        # Hash the password the same way as signup
         password = "password123"
-        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
         # Insert into DB
         cursor.execute(
@@ -204,11 +204,9 @@ if auth_status is None:
         if st.button("Create Account"):
             if not all([new_username, new_name, new_pw]):
                 st.error("All fields are required")
-            # elif new_pw != confirm_pw:
-            #     st.error("Passwords do not match")
             else:
                 cursor.execute(
-                    "SELECT 1 FROM users WHERE username=?",
+                    "SELECT 1 FROM users WHERE username=%s",  # Changed ? to %s
                     (new_username,)
                 )
                 if cursor.fetchone():
@@ -220,8 +218,8 @@ if auth_status is None:
 
                     cursor.execute("""
                         INSERT INTO users (username, name, password_hash)
-                        VALUES (?, ?, ?)
-                    """, (new_username, new_name, pw_hash))
+                        VALUES (%s, %s, %s)
+                    """, (new_username, new_name, pw_hash))  # Changed to %s
                     conn.commit()
 
                     st.success("Account created! Please log in above.")
@@ -254,12 +252,12 @@ if auth_status:
         new_pw = st.text_input("New Password", type="password")
         confirm_pw = st.text_input("Confirm New Password", type="password")
         if st.button("Update Password"):
-            cursor.execute("SELECT password_hash FROM users WHERE username=?", (username,))
+            cursor.execute("SELECT password_hash FROM users WHERE username=%s", (username,))
             stored_hash = cursor.fetchone()[0]
             if bcrypt.checkpw(old_pw.encode(), stored_hash.encode()):
                 if new_pw == confirm_pw:
                     new_hash = bcrypt.hashpw(new_pw.encode(), bcrypt.gensalt()).decode()
-                    cursor.execute("UPDATE users SET password_hash=? WHERE username=?", (new_hash, username))
+                    cursor.execute("UPDATE users SET password_hash=%s WHERE username=%s", (new_hash, username))
                     conn.commit()
                     st.success("Password updated successfully!")
                     st.rerun()
@@ -290,7 +288,7 @@ if auth_status:
 
                 if st.button("Save", key=f"save_winner_{safe_key(game_id)}"):
                     cursor.execute(
-                        "UPDATE games SET winner=? WHERE game_id=?",
+                        "UPDATE games SET winner=%s WHERE game_id=%s",
                         (choice if choice else None, game_id)
                     )
                     conn.commit()
