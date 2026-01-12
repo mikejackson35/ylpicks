@@ -137,7 +137,7 @@ def add_test_user():
     if cursor.fetchone()["count"] == 0:
         password_hash = Hasher.hash_passwords(
             ["password123"]
-        )[0]
+        ).generate()[0]
 
         cursor.execute(
             "INSERT INTO users (username, name, password_hash) VALUES (%s, %s, %s)",
