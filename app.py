@@ -160,27 +160,22 @@ def get_users_for_auth():
 def add_test_user():
     cursor.execute("SELECT COUNT(*) AS count FROM users")
     if cursor.fetchone()["count"] == 0:
-        # Prepare credentials dict
-        credentials = {
-            "usernames": {
-                "mj": {
-                    "name": "Mike",
-                    "password": "password123"
-                }
-            }
-        }
+        # User info
+        username = "mj"
+        name = "Mike"
+        password = "password123"
 
-        # Hash the password properly using the new API
-        hasher = Hasher(credentials)
-        hashed_credentials = hasher.generate()
-        password_hash = hashed_credentials["usernames"]["mj"]["password"]
+        # Hash the password using the new API
+        from streamlit_authenticator import Hasher
+        password_hash = Hasher.generate_password_hash(password)
 
         # Insert into DB
         cursor.execute(
             "INSERT INTO users (username, name, password_hash) VALUES (%s, %s, %s)",
-            ("mj", "Mike", password_hash)
+            (username, name, password_hash)
         )
         conn.commit()
+
 
 
 
