@@ -1,5 +1,5 @@
-streamlit==1.27.0
-streamlit-authenticator==0.4.2
+streamlit
+streamlit-authenticator
 psycopg2-binary>=2.9.8
 bcrypt==4.0.1
 
