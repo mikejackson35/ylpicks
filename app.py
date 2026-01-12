@@ -1,7 +1,5 @@
 import streamlit as st
 from datetime import datetime
-import streamlit_authenticator as stauth
-from streamlit_authenticator import Hasher
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import bcrypt
@@ -122,16 +120,6 @@ ADMINS = {"mj"}  # set of usernames allowed to see admin tools
 # ----------------------------
 # HELPER FUNCTIONS
 # ----------------------------
-def get_users_for_auth():
-    cursor.execute("SELECT username, password_hash, name FROM users")
-    rows = cursor.fetchall()
-    credentials = {"usernames": {}}
-    for username, pw_hash, name in rows:
-        credentials["usernames"][username] = {
-            "name": name,
-            "password": pw_hash
-        }
-    return credentials
 
 def add_test_user():
     cursor.execute("SELECT COUNT(*) AS count FROM users")
@@ -174,39 +162,62 @@ add_test_user()
 seed_games()
 
 # ----------------------------
-# AUTHENTICATION
-credentials = get_users_for_auth()
+# AUTHENTICATION (Manual with bcrypt)
+# ----------------------------
 
-authenticator = stauth.Authenticate(
-    credentials,
-    "pickem_cookie",
-    st.secrets["auth_key"],
-    30
-)
+if "authentication_status" not in st.session_state:
+    st.session_state["authentication_status"] = None
+    st.session_state["username"] = None
+    st.session_state["name"] = None
 
-authenticator.login("Login", "main")
+auth_status = st.session_state["authentication_status"]
+username = st.session_state["username"]
+name = st.session_state["name"]
 
-auth_status = st.session_state.get("authentication_status")
-username = st.session_state.get("username")
-name = st.session_state.get("name")
+# Manual Login Form
+if not auth_status:
+    st.title("Login")
+    
+    with st.form("login_form"):
+        login_username = st.text_input("Username")
+        login_password = st.text_input("Password", type="password")
+        submit = st.form_submit_button("Login")
+        
+        if submit:
+            if login_username and login_password:
+                cursor.execute(
+                    "SELECT username, name, password_hash FROM users WHERE username=%s",
+                    (login_username,)
+                )
+                user = cursor.fetchone()
+                
+                if user and bcrypt.checkpw(login_password.encode(), user["password_hash"].encode()):
+                    st.session_state["authentication_status"] = True
+                    st.session_state["username"] = user["username"]
+                    st.session_state["name"] = user["name"]
+                    st.success("Login successful!")
+                    st.rerun()
+                else:
+                    st.session_state["authentication_status"] = False
+                    st.error("Username/password is incorrect")
+            else:
+                st.error("Please enter both username and password")
 
 # ----------------------------
 # SIGN UP (ONLY SHOWN WHEN NOT LOGGED IN)
 # ----------------------------
-if auth_status is None:
+if not auth_status:
     with st.expander("Create a New Account"):
         new_username = st.text_input("Username")
         new_name = st.text_input("Name")
-        # new_email = st.text_input("Email")
         new_pw = st.text_input("Password", type="password")
-        # confirm_pw = st.text_input("Confirm Password", type="password")
 
         if st.button("Create Account"):
             if not all([new_username, new_name, new_pw]):
                 st.error("All fields are required")
             else:
                 cursor.execute(
-                    "SELECT 1 FROM users WHERE username=%s",  # Changed ? to %s
+                    "SELECT 1 FROM users WHERE username=%s",
                     (new_username,)
                 )
                 if cursor.fetchone():
@@ -219,25 +230,23 @@ if auth_status is None:
                     cursor.execute("""
                         INSERT INTO users (username, name, password_hash)
                         VALUES (%s, %s, %s)
-                    """, (new_username, new_name, pw_hash))  # Changed to %s
+                    """, (new_username, new_name, pw_hash))
                     conn.commit()
 
                     st.success("Account created! Please log in above.")
                     st.rerun()
 
-
 # ----------------------------
-# LOGIN STATUS UI
+# LOGOUT
 # ----------------------------
 if auth_status:
-    authenticator.logout("Logout", "sidebar")
-    st.sidebar.success(f"Logged in as {name}")
-
-elif auth_status is False:
-    st.error("Username/password is incorrect")
-
-else:
-    st.info("Please log in to access the app.")
+    with st.sidebar:
+        st.success(f"Logged in as {name}")
+        if st.button("Logout"):
+            st.session_state["authentication_status"] = None
+            st.session_state["username"] = None
+            st.session_state["name"] = None
+            st.rerun()
 
 
 
