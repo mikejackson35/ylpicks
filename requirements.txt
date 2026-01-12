@@ -1,5 +1,4 @@
 bcrypt>=4.0.0
 streamlit
-streamlit_authenticator
 psycopg2-binary
 streamlit-authenticator==0.3.0
