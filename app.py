@@ -178,10 +178,10 @@ seed_games()
 credentials = get_users_for_auth()
 
 authenticator = stauth.Authenticate(
-    credentials=credentials,
-    cookie_name="pickem_cookie",
-    key=st.secrets["auth_key"],
-    cookie_expiry_days=30,
+    credentials,
+    "pickem_cookie",
+    st.secrets["auth_key"],
+    30
 )
 
 authenticator.login(location="main")
