@@ -135,15 +135,15 @@ def get_users_for_auth():
 def add_test_user():
     cursor.execute("SELECT COUNT(*) AS count FROM users")
     if cursor.fetchone()["count"] == 0:
-        password_hash = Hasher.hash_passwords(
-            ["password123"]
-        )[0]
+        # Hash password properly
+        password_hash = Hasher.hash_passwords(["password123"])[0]
 
         cursor.execute(
             "INSERT INTO users (username, name, password_hash) VALUES (%s, %s, %s)",
             ("mj", "Mike", password_hash)
         )
         conn.commit()
+
 
 
 
