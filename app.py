@@ -293,26 +293,41 @@ if auth_status:
             cursor.execute("SELECT game_id, home, away, winner FROM games ORDER BY game_id")
             games = cursor.fetchall()
 
-            for game_id, home, away, winner in games:
-                col1, col2 = st.columns([3, 1])
-                
-                with col1:
-                    choice = st.selectbox(
-                        f"{away} @ {home}",
-                        ["", home, away],
-                        index=(["", home, away].index(winner) if winner else 0),
-                        key=f"winner_{safe_key(game_id)}"
-                    )
-
-                with col2:
-                    if st.button("Save", key=f"save_winner_{safe_key(game_id)}"):
-                        cursor.execute(
-                            "UPDATE games SET winner=%s WHERE game_id=%s",
-                            (choice if choice else None, game_id)
+            if not games:
+                st.info("No games found in database")
+            else:
+                for game_id, home, away, winner in games:
+                    col1, col2 = st.columns([3, 1])
+                    
+                    with col1:
+                        # Strip whitespace and handle None
+                        winner_clean = winner.strip() if winner else None
+                        home_clean = home.strip()
+                        away_clean = away.strip()
+                        
+                        # Safely determine index
+                        options = ["", home_clean, away_clean]
+                        try:
+                            current_index = options.index(winner_clean) if winner_clean else 0
+                        except ValueError:
+                            current_index = 0  # Default to empty if winner doesn't match
+                        
+                        choice = st.selectbox(
+                            f"{away_clean} @ {home_clean}",
+                            options,
+                            index=current_index,
+                            key=f"winner_{safe_key(game_id)}"
                         )
-                        conn.commit()
-                        st.success("Saved!")
-                        st.rerun()
+
+                    with col2:
+                        if st.button("Save", key=f"save_winner_{safe_key(game_id)}"):
+                            cursor.execute(
+                                "UPDATE games SET winner=%s WHERE game_id=%s",
+                                (choice if choice else None, game_id)
+                            )
+                            conn.commit()
+                            st.success("Saved!")
+                            st.rerun()
 
 
 
@@ -361,7 +376,7 @@ if auth_status:
             if st.button("Save Pick", key=f"save_{safe_key(username)}_{safe_key(game['game_id'])}"):
 
                 cursor.execute(
-                    "INSERT OR REPLACE INTO picks (username, game_id, pick, timestamp) VALUES (?, ?, ?, ?)",
+                    "INSERT OR REPLACE INTO picks (username, game_id, pick, timestamp) VALUES (%s, %s, %s, %s)",
                     (username, game["game_id"], choice, now.isoformat())
                 )
                 conn.commit()
