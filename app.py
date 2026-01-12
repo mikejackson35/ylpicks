@@ -475,11 +475,11 @@ if auth_status:
 
         # 1️⃣ Get all users (username + full name)
         cursor.execute("SELECT username, name FROM users ORDER BY name")
-        users = cursor.fetchall()  # list of (username, name)
+        users = cursor.fetchall()  # list of dicts
 
         # Mapping for easy lookup
-        name_map = {username: name for username, name in users}
-        usernames = [username for username, _ in users]
+        name_map = {user["username"]: user["name"] for user in users}
+        usernames = [user["username"] for user in users]
 
         # 2️⃣ Initialize points to 0 for all users
         user_points = {u: 0 for u in usernames}
@@ -496,11 +496,16 @@ if auth_status:
         cursor.execute("SELECT username, game_id, pick FROM picks")
         all_picks = cursor.fetchall()
 
-        for username, game_id, pick in all_picks:
-            cursor.execute("SELECT winner, week FROM games WHERE game_id=?", (game_id,))
+        for pick_row in all_picks:
+            username = pick_row["username"]
+            game_id = pick_row["game_id"]
+            pick = pick_row["pick"]
+            
+            cursor.execute("SELECT winner, week FROM games WHERE game_id=%s", (game_id,))  # Changed ? to %s
             result = cursor.fetchone()
             if result:
-                winner, week = result
+                winner = result["winner"]
+                week = result["week"]
                 if winner and pick == winner:
                     user_points[username] += ROUND_WEIGHTS.get(week, 1)
 
@@ -518,7 +523,7 @@ if auth_status:
         # 7️⃣ Display in Streamlit with Points column right-aligned
         st.dataframe(
             df.style.format({"Points": "{:>d}"}),  # right-align numbers
-            use_container_width=True
+            width="stretch"  # Changed from use_container_width=True
         )
 
 
