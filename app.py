@@ -518,6 +518,7 @@ if auth_status:
         })
 
         # 6️⃣ Sort by points descending
+        df.columns = ["Name", "Points"]
         df = df.sort_values("Points", ascending=False).reset_index(drop=True)
 
         # 7️⃣ Display in Streamlit with Points column right-aligned
