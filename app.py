@@ -296,7 +296,15 @@ if auth_status:
             if not games:
                 st.info("No games found in database")
             else:
-                for idx, (game_id, home, away, winner) in enumerate(games):
+                # DEBUG: Show what we're getting
+                st.write("DEBUG - First game:", games[0] if games else "None")
+                
+                for idx, game in enumerate(games):
+                    game_id = game["game_id"]
+                    home = game["home"]
+                    away = game["away"]
+                    winner = game["winner"]
+                    
                     col1, col2 = st.columns([3, 1])
                     
                     with col1:
@@ -310,17 +318,17 @@ if auth_status:
                         try:
                             current_index = options.index(winner_clean) if winner_clean else 0
                         except ValueError:
-                            current_index = 0  # Default to empty if winner doesn't match
+                            current_index = 0
                         
                         choice = st.selectbox(
                             f"{away_clean} @ {home_clean}",
                             options,
                             index=current_index,
-                            key=f"winner_{idx}_{safe_key(str(game_id))}"  # Added idx for uniqueness
+                            key=f"winner_{idx}"
                         )
 
                     with col2:
-                        if st.button("Save", key=f"save_{idx}_{safe_key(str(game_id))}"):  # Added idx for uniqueness
+                        if st.button("Save", key=f"save_{idx}"):
                             cursor.execute(
                                 "UPDATE games SET winner=%s WHERE game_id=%s",
                                 (choice if choice else None, game_id)
@@ -362,7 +370,7 @@ if auth_status:
             st.caption(f"{kickoff_str} EST")
 
 
-            cursor.execute("SELECT pick FROM picks WHERE username=? AND game_id=?", (username, game["game_id"]))
+            cursor.execute("SELECT pick FROM picks WHERE username=%s AND game_id=%s", (username, game["game_id"]))
             existing = cursor.fetchone()
 
             if not locked:
@@ -390,7 +398,7 @@ if auth_status:
 
             # Show all picks after kickoff
             if locked:
-                cursor.execute("SELECT username, pick FROM picks WHERE game_id=?", (game["game_id"],))
+                cursor.execute("SELECT username, pick FROM picks WHERE game_id=%s", (game["game_id"],))
                 st.table(cursor.fetchall())
 
             st.divider()
@@ -418,7 +426,7 @@ if auth_status:
             name_map = {u: n for u, n in users}
 
             # 2️⃣ Get picks for these games
-            placeholders = ",".join("?" * len(game_ids))
+            placeholders = ",".join("%s" * len(game_ids))
             cursor.execute(
                 f"""
                 SELECT username, game_id, pick
