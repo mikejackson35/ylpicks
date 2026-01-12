@@ -450,7 +450,7 @@ if auth_status:
         users = cursor.fetchall()  # list of (username, name)
 
         # Mapping for easy lookup
-        name_map = {username: full_name for username, full_name in users}
+        name_map = {username: name for username, name in users}
         usernames = [username for username, _ in users]
 
         # 2️⃣ Initialize points to 0 for all users
