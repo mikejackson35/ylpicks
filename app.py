@@ -296,7 +296,7 @@ if auth_status:
             if not games:
                 st.info("No games found in database")
             else:
-                for game_id, home, away, winner in games:
+                for idx, (game_id, home, away, winner) in enumerate(games):
                     col1, col2 = st.columns([3, 1])
                     
                     with col1:
@@ -316,11 +316,11 @@ if auth_status:
                             f"{away_clean} @ {home_clean}",
                             options,
                             index=current_index,
-                            key=f"winner_{safe_key(game_id)}"
+                            key=f"winner_{idx}_{safe_key(str(game_id))}"  # Added idx for uniqueness
                         )
 
                     with col2:
-                        if st.button("Save", key=f"save_winner_{safe_key(game_id)}"):
+                        if st.button("Save", key=f"save_{idx}_{safe_key(str(game_id))}"):  # Added idx for uniqueness
                             cursor.execute(
                                 "UPDATE games SET winner=%s WHERE game_id=%s",
                                 (choice if choice else None, game_id)
