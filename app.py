@@ -2,6 +2,7 @@ import streamlit as st
 from datetime import datetime
 import bcrypt
 import streamlit_authenticator as stauth
+from streamlit_authenticator.utilities.hasher import Hasher
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -134,9 +135,9 @@ def get_users_for_auth():
 def add_test_user():
     cursor.execute("SELECT COUNT(*) AS count FROM users")
     if cursor.fetchone()["count"] == 0:
-        password_hash = stauth.Hasher(
+        password_hash = Hasher.hash_passwords(
             ["password123"]
-        ).generate()[0]
+        )[0]
 
         cursor.execute(
             "INSERT INTO users (username, name, password_hash) VALUES (%s, %s, %s)",
