@@ -88,19 +88,14 @@ def seed_games():
     for g in GAMES:
         cursor.execute(
             """
-            INSERT OR IGNORE INTO games
-            (game_id, week, home, away, kickoff)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO games (game_id, week, home, away, kickoff)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (game_id) DO NOTHING
             """,
-            (
-                g["game_id"],
-                g["week"],
-                g["home"],
-                g["away"],
-                g["kickoff"].isoformat()
-            )
+            (g["game_id"], g["week"], g["home"], g["away"], g["kickoff"])
         )
     conn.commit()
+
 
 
 # ----------------------------
