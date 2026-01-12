@@ -136,19 +136,9 @@ def get_users_for_auth():
 def add_test_user():
     cursor.execute("SELECT COUNT(*) AS count FROM users")
     if cursor.fetchone()["count"] == 0:
-        # Prepare credentials dict
-        credentials = {
-            "usernames": {
-                "mj": {
-                    "name": "Mike",
-                    "password": "password123"
-                }
-            }
-        }
-
-        # Hash the password properly
-        hashed_credentials = Hasher.make_password_hashes(credentials)
-        password_hash = hashed_credentials["usernames"]["mj"]["password"]
+        # Hash the password using bcrypt directly
+        password = "password123"
+        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
         # Insert into DB
         cursor.execute(
