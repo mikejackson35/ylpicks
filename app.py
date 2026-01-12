@@ -133,53 +133,29 @@ def get_users_for_auth():
         }
     return credentials
 
-# def add_test_user():
-#     cursor.execute("SELECT COUNT(*) AS count FROM users")
-#     if cursor.fetchone()["count"] == 0:
-#         # Prepare credentials dict
-#         credentials = {
-#             "usernames": {
-#                 "mj": {
-#                     "name": "Mike",
-#                     "password": "password123"
-#                 }
-#             }
-#         }
-
-#         # Hash the password properly
-#         hashed_credentials = Hasher.make_password_hashes(credentials)
-#         password_hash = hashed_credentials["usernames"]["mj"]["password"]
-
-#         # Insert into DB
-#         cursor.execute(
-#             "INSERT INTO users (username, name, password_hash) VALUES (%s, %s, %s)",
-#             ("mj", "Mike", password_hash)
-#         )
-#         conn.commit()
-
 def add_test_user():
     cursor.execute("SELECT COUNT(*) AS count FROM users")
     if cursor.fetchone()["count"] == 0:
-        # User info
-        username = "mj"
-        name = "Mike"
-        password = "password123"
+        # Prepare credentials dict
+        credentials = {
+            "usernames": {
+                "mj": {
+                    "name": "Mike",
+                    "password": "password123"
+                }
+            }
+        }
 
-        # Hash the password using the new API
-        from streamlit_authenticator import Hasher
-        password_hash = Hasher.generate_password_hash(password)
+        # Hash the password properly
+        hashed_credentials = Hasher.make_password_hashes(credentials)
+        password_hash = hashed_credentials["usernames"]["mj"]["password"]
 
         # Insert into DB
         cursor.execute(
             "INSERT INTO users (username, name, password_hash) VALUES (%s, %s, %s)",
-            (username, name, password_hash)
+            ("mj", "Mike", password_hash)
         )
         conn.commit()
-
-
-
-
-
 
 
 import re
