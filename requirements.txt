@@ -3,4 +3,3 @@ streamlit
 streamlit_authenticator
 psycopg2-binary
 streamlit-authenticator==0.3.0
-streamlit-authenticator-utilities==0.1.0
