@@ -296,9 +296,6 @@ if auth_status:
             if not games:
                 st.info("No games found in database")
             else:
-                # DEBUG: Show what we're getting
-                st.write("DEBUG - First game:", games[0] if games else "None")
-                
                 for idx, game in enumerate(games):
                     game_id = game["game_id"]
                     home = game["home"]
@@ -314,7 +311,7 @@ if auth_status:
                         away_clean = away.strip()
                         
                         # Safely determine index
-                        options = ["", home_clean, away_clean]
+                        options = [away_clean, home_clean]
                         try:
                             current_index = options.index(winner_clean) if winner_clean else 0
                         except ValueError:
