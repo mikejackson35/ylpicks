@@ -69,12 +69,12 @@ conn.commit()
 # SAMPLE GAMES
 # ----------------------------
 GAMES = [
-    {"game_id": "LAR @ CAR", "week": "Wild Card", "home": "Panthers", "away": "Rams", "kickoff": datetime(2026, 1, 7, 18, 20)},
-    {"game_id": "CHI @ GB", "week": "Wild Card", "home": "Bears", "away": "Packers", "kickoff": datetime(2026, 1, 7, 18, 20)},
-    {"game_id": "JAX @ BUF", "week": "Wild Card", "home": "Jaguars", "away": "Bills", "kickoff": datetime(2026, 1, 7, 18, 20)},
-    {"game_id": "PHI @ SF", "week": "Wild Card", "home": "Eagles", "away": "49ers", "kickoff": datetime(2026, 1, 7, 18, 20)},
-    {"game_id": "NE @ LAC", "week": "Wild Card", "home": "Patriots", "away": "Chargers", "kickoff": datetime(2026, 1, 7, 18, 20)},
-    {"game_id": "PIT @ HOU", "week": "Wild Card", "home": "Steelers", "away": "Texans", "kickoff": datetime(2026, 1, 7, 18, 20)},
+    {"game_id": "LAR @ CAR", "week": "Wild Card", "home": "Panthers", "away": "Rams", "kickoff": datetime(2026, 1, 14, 18, 20)},
+    {"game_id": "CHI @ GB", "week": "Wild Card", "home": "Bears", "away": "Packers", "kickoff": datetime(2026, 1, 14, 18, 20)},
+    {"game_id": "JAX @ BUF", "week": "Wild Card", "home": "Jaguars", "away": "Bills", "kickoff": datetime(2026, 1, 14, 18, 20)},
+    {"game_id": "PHI @ SF", "week": "Wild Card", "home": "Eagles", "away": "49ers", "kickoff": datetime(2026, 1, 14, 18, 20)},
+    {"game_id": "NE @ LAC", "week": "Wild Card", "home": "Patriots", "away": "Chargers", "kickoff": datetime(2026, 1, 14, 18, 20)},
+    {"game_id": "PIT @ HOU", "week": "Wild Card", "home": "Steelers", "away": "Texans", "kickoff": datetime(2026, 1, 14, 18, 20)},
     {"game_id": "Div1", "week": "Divisional", "home": "Team A", "away": "Team B", "kickoff": datetime(2026, 1, 17, 22, 0)},
     {"game_id": "Div2", "week": "Divisional", "home": "Team C", "away": "Team D", "kickoff": datetime(2026, 1, 17, 15, 0)},
     {"game_id": "Div3", "week": "Divisional", "home": "Team E", "away": "Team F", "kickoff": datetime(2026, 1, 18, 19, 30)},
@@ -132,19 +132,18 @@ def get_users_for_auth():
     return credentials
 
 def add_test_user():
-    # Add a test user if DB is empty - mj / password123
     cursor.execute("SELECT COUNT(*) AS count FROM users")
     if cursor.fetchone()["count"] == 0:
-        password_hash = bcrypt.hashpw(
-            "password123".encode(),
-            bcrypt.gensalt()
-        ).decode()
+        password_hash = stauth.Hasher(
+            ["password123"]
+        ).generate()[0]
 
         cursor.execute(
             "INSERT INTO users (username, name, password_hash) VALUES (%s, %s, %s)",
             ("mj", "Mike", password_hash)
         )
         conn.commit()
+
 
 
 import re
@@ -165,9 +164,15 @@ conn.commit()
 # ----------------------------
 # SETUP
 # ----------------------------
+
+# Add test user if none exist
 add_test_user()
+
+# ----------------------------
+# AUTHENTICATION
 credentials = get_users_for_auth()
 
+# Seed games if not already present
 seed_games()
 
 authenticator = stauth.Authenticate(
