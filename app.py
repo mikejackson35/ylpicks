@@ -1,10 +1,11 @@
 import streamlit as st
 from datetime import datetime
-import bcrypt
 import streamlit_authenticator as stauth
 from streamlit_authenticator.utilities.hasher import Hasher
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import bcrypt
+
 
 # ----------------------------
 # Database Connection
@@ -26,10 +27,10 @@ conn = get_connection()
 
 if conn is None:
     st.stop()  # Stop the app if DB connection fails
-else:
-    cursor = conn.cursor()
-    st.success("Connected to Supabase successfully!")
-
+# else:
+#     cursor = conn.cursor()
+#     st.success("Connected to Supabase successfully!")
+cursor = conn.cursor()
 
 
 # Users table
@@ -182,12 +183,12 @@ conn.commit()
 # Add test user if none exist
 add_test_user()
 
+# Seed games if not already present
+seed_games()
+
 # ----------------------------
 # AUTHENTICATION
 credentials = get_users_for_auth()
-
-# Seed games if not already present
-seed_games()
 
 authenticator = stauth.Authenticate(
     credentials=credentials,
