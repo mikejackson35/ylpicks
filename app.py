@@ -290,17 +290,25 @@ if auth_status:
         st.sidebar.caption(f"Picks in DB: {cursor.fetchone()['count']}")
         
         with st.expander("🛠 Admin: Set Game Winners"):
-            cursor.execute("SELECT game_id, home, away, winner FROM games ORDER BY game_id")
+            cursor.execute("SELECT game_id, week, home, away, winner FROM games")
             games = cursor.fetchall()
 
             if not games:
                 st.info("No games found in database")
             else:
-                for idx, game in enumerate(games):
+                # Sort games by round order
+                games_sorted = sorted(games, key=lambda g: ROUND_ORDER.index(g["week"]))
+                
+                for idx, game in enumerate(games_sorted):
                     game_id = game["game_id"]
+                    week = game["week"]
                     home = game["home"]
                     away = game["away"]
                     winner = game["winner"]
+                    
+                    # Show round header
+                    if idx == 0 or games_sorted[idx-1]["week"] != week:
+                        st.subheader(week)
                     
                     col1, col2 = st.columns([3, 1])
                     
@@ -311,7 +319,7 @@ if auth_status:
                         away_clean = away.strip()
                         
                         # Safely determine index
-                        options = [away_clean, home_clean]
+                        options = ["", home_clean, away_clean]
                         try:
                             current_index = options.index(winner_clean) if winner_clean else 0
                         except ValueError:
