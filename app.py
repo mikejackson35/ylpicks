@@ -249,7 +249,6 @@ if auth_status:
             st.rerun()
 
 
-
 # ----------------------------
 # APP
 # ----------------------------
@@ -257,51 +256,63 @@ if auth_status:
 
     # PASSWORD CHANGE
     with st.sidebar.expander("Change Password"):
-        old_pw = st.text_input("Old Password", type="password")
-        new_pw = st.text_input("New Password", type="password")
-        confirm_pw = st.text_input("Confirm New Password", type="password")
+        old_pw = st.text_input("Old Password", type="password", key="old_pw")
+        new_pw = st.text_input("New Password", type="password", key="new_pw")
+        confirm_pw = st.text_input("Confirm New Password", type="password", key="confirm_pw")
         if st.button("Update Password"):
-            cursor.execute("SELECT password_hash FROM users WHERE username=%s", (username,))
-            stored_hash = cursor.fetchone()[0]
-            if bcrypt.checkpw(old_pw.encode(), stored_hash.encode()):
-                if new_pw == confirm_pw:
-                    new_hash = bcrypt.hashpw(new_pw.encode(), bcrypt.gensalt()).decode()
-                    cursor.execute("UPDATE users SET password_hash=%s WHERE username=%s", (new_hash, username))
-                    conn.commit()
-                    st.success("Password updated successfully!")
-                    st.rerun()
-                else:
-                    st.error("New passwords do not match")
+            if not all([old_pw, new_pw, confirm_pw]):
+                st.error("All fields are required")
             else:
-                st.error("Old password incorrect")
+                cursor.execute("SELECT password_hash FROM users WHERE username=%s", (username,))
+                result = cursor.fetchone()
+                if result:
+                    stored_hash = result["password_hash"]
+                    if bcrypt.checkpw(old_pw.encode(), stored_hash.encode()):
+                        if new_pw == confirm_pw:
+                            new_hash = bcrypt.hashpw(new_pw.encode(), bcrypt.gensalt()).decode()
+                            cursor.execute("UPDATE users SET password_hash=%s WHERE username=%s", (new_hash, username))
+                            conn.commit()
+                            st.success("Password updated successfully!")
+                            st.rerun()
+                        else:
+                            st.error("New passwords do not match")
+                    else:
+                        st.error("Old password incorrect")
+                else:
+                    st.error("User not found")
 
+    # ADMIN TOOLS
     if username in ADMINS:
-
         cursor.execute("SELECT COUNT(*) FROM users")
-        st.sidebar.caption(f"Users in DB: {cursor.fetchone()[0]}")
+        st.sidebar.caption(f"Users in DB: {cursor.fetchone()['count']}")
 
         cursor.execute("SELECT COUNT(*) FROM picks")
-        st.sidebar.caption(f"Picks in DB: {cursor.fetchone()[0]}")
+        st.sidebar.caption(f"Picks in DB: {cursor.fetchone()['count']}")
         
         with st.expander("🛠 Admin: Set Game Winners"):
-            cursor.execute("SELECT game_id, home, away, winner FROM games")
+            cursor.execute("SELECT game_id, home, away, winner FROM games ORDER BY game_id")
             games = cursor.fetchall()
 
             for game_id, home, away, winner in games:
-                choice = st.selectbox(
-                    f"{away} @ {home}",
-                    ["", home, away],
-                    index=(["", home, away].index(winner) if winner else 0),
-                    key=f"winner_{safe_key(game_id)}"
-                )
-
-                if st.button("Save", key=f"save_winner_{safe_key(game_id)}"):
-                    cursor.execute(
-                        "UPDATE games SET winner=%s WHERE game_id=%s",
-                        (choice if choice else None, game_id)
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    choice = st.selectbox(
+                        f"{away} @ {home}",
+                        ["", home, away],
+                        index=(["", home, away].index(winner) if winner else 0),
+                        key=f"winner_{safe_key(game_id)}"
                     )
-                    conn.commit()
-                    st.success(f"Winner saved for {away} @ {home}")
+
+                with col2:
+                    if st.button("Save", key=f"save_winner_{safe_key(game_id)}"):
+                        cursor.execute(
+                            "UPDATE games SET winner=%s WHERE game_id=%s",
+                            (choice if choice else None, game_id)
+                        )
+                        conn.commit()
+                        st.success("Saved!")
+                        st.rerun()
 
 
 
