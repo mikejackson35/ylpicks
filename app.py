@@ -1,7 +1,7 @@
 import streamlit as st
 from datetime import datetime
 import streamlit_authenticator as stauth
-from streamlit_authenticator.utilities.hasher import Hasher
+from streamlit_authenticator import Hasher
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import bcrypt
@@ -133,6 +133,30 @@ def get_users_for_auth():
         }
     return credentials
 
+# def add_test_user():
+#     cursor.execute("SELECT COUNT(*) AS count FROM users")
+#     if cursor.fetchone()["count"] == 0:
+#         # Prepare credentials dict
+#         credentials = {
+#             "usernames": {
+#                 "mj": {
+#                     "name": "Mike",
+#                     "password": "password123"
+#                 }
+#             }
+#         }
+
+#         # Hash the password properly
+#         hashed_credentials = Hasher.make_password_hashes(credentials)
+#         password_hash = hashed_credentials["usernames"]["mj"]["password"]
+
+#         # Insert into DB
+#         cursor.execute(
+#             "INSERT INTO users (username, name, password_hash) VALUES (%s, %s, %s)",
+#             ("mj", "Mike", password_hash)
+#         )
+#         conn.commit()
+
 def add_test_user():
     cursor.execute("SELECT COUNT(*) AS count FROM users")
     if cursor.fetchone()["count"] == 0:
@@ -146,8 +170,9 @@ def add_test_user():
             }
         }
 
-        # Hash the password properly
-        hashed_credentials = Hasher.make_password_hashes(credentials)
+        # Hash the password properly using the new API
+        hasher = Hasher(credentials)
+        hashed_credentials = hasher.generate()
         password_hash = hashed_credentials["usernames"]["mj"]["password"]
 
         # Insert into DB
@@ -156,6 +181,7 @@ def add_test_user():
             ("mj", "Mike", password_hash)
         )
         conn.commit()
+
 
 
 
