@@ -138,12 +138,19 @@ def get_users_for_auth():
 
 def add_test_user():
     # Add a test user if DB is empty - mj / password123
-    cursor.execute("SELECT COUNT(*) FROM users")
-    if cursor.fetchone()[0] == 0:
-        password_hash = bcrypt.hashpw("password123".encode(), bcrypt.gensalt()).decode()
-        cursor.execute("INSERT INTO users (username, name, password_hash) VALUES (?, ?, ?)",
-                       ("mj", "Mike", password_hash))
+    cursor.execute("SELECT COUNT(*) AS count FROM users")
+    if cursor.fetchone()["count"] == 0:
+        password_hash = bcrypt.hashpw(
+            "password123".encode(),
+            bcrypt.gensalt()
+        ).decode()
+
+        cursor.execute(
+            "INSERT INTO users (username, name, password_hash) VALUES (%s, %s, %s)",
+            ("mj", "Mike", password_hash)
+        )
         conn.commit()
+
 
 import re
 
