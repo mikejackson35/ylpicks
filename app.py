@@ -5,6 +5,7 @@ from psycopg2.extras import RealDictCursor
 import bcrypt
 
 from datetime import datetime, timezone
+from utils import TEAM_ABBR
 
 
 # ----------------------------
@@ -122,6 +123,13 @@ ADMINS = {"mj"}  # set of usernames allowed to see admin tools
 # ----------------------------
 # HELPER FUNCTIONS
 # ----------------------------
+
+def nfl_logo_url(team_abbr: str, size: int = 500) -> str:
+    espn_abbr = TEAM_ABBR.get(team_abbr.upper())
+    if not espn_abbr:
+        return None
+    return f"https://a.espncdn.com/i/teamlogos/nfl/{size}/{espn_abbr}.png"
+
 
 def add_test_user():
     cursor.execute("SELECT COUNT(*) AS count FROM users")
@@ -462,16 +470,35 @@ if auth_status:
                         locked = now >= g["kickoff"]
 
                         if locked:
-                            row_data[g["game_id"]] = pick_map[username][g["game_id"]] or "—"
+                            pick = pick_map[username][g["game_id"]]
+                            # Show logo URL if pick exists, otherwise show —
+                            row_data[g["game_id"]] = nfl_logo_url(pick, 100) if pick else "—"
                         else:
                             row_data[g["game_id"]] = "🔒"
 
                     table.append(row_data)
 
-                # 5️⃣ Display using st.dataframe for better formatting
+                # 5️⃣ Create column config to render images
                 import pandas as pd
                 df = pd.DataFrame(table)
-                st.dataframe(df, width="stretch", hide_index=True)
+                
+                column_config = {
+                    "User": st.column_config.TextColumn("User", width="medium")
+                }
+                
+                # Configure each game column to show images
+                for g in week_games:
+                    column_config[g["game_id"]] = st.column_config.ImageColumn(
+                        g["game_id"],
+                        width="small"
+                    )
+                
+                st.dataframe(
+                    df,
+                    width="stretch",
+                    hide_index=True,
+                    column_config=column_config
+                )
 
 
 
