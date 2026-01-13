@@ -351,60 +351,71 @@ if auth_status:
 
 
     if page == "Make Picks":
-        st.write(f"Hello **{name}**!")
-        st.title("Make Picks Here")
-        # st.write(f"Hello **{name}**!")
-        st.sidebar.divider()
+            st.write(f"Hello **{name}**!")
+            st.title("Make Picks Here")
+            st.sidebar.divider()
 
-        # PICK'EM LOGIC
-        week = st.sidebar.selectbox(
-            "Select Round",
-            [r for r in ROUND_ORDER if r in {g["week"] for g in GAMES}]
-        )
+            # PICK'EM LOGIC
+            week = st.sidebar.selectbox(
+                "Select Round",
+                [r for r in ROUND_ORDER if r in {g["week"] for g in GAMES}]
+            )
 
-        now = datetime.utcnow()
-        week_games = [g for g in GAMES if g["week"] == week]
+            # Fix deprecated datetime
+            from datetime import timezone
+            now = datetime.now(timezone.utc)
+            week_games = [g for g in GAMES if g["week"] == week]
 
-        st.write('')
+            st.write('')
 
-        for game in week_games:
-            locked = now >= game["kickoff"]
-            matchup = f'{game["away"]} @ {game["home"]}'
-            st.subheader(matchup)
-            kickoff_str = game["kickoff"].strftime("%A %I:%M %p").lstrip("0")
-            st.caption(f"{kickoff_str} EST")
+            for game in week_games:
+                locked = now >= game["kickoff"]
+                matchup = f'{game["away"]} @ {game["home"]}'
+                st.subheader(matchup)
+                kickoff_str = game["kickoff"].strftime("%A %I:%M %p").lstrip("0")
+                st.caption(f"{kickoff_str} EST")
 
+                # Get existing pick - fix dictionary access
+                cursor.execute("SELECT pick FROM picks WHERE username=%s AND game_id=%s", (username, game["game_id"]))
+                existing = cursor.fetchone()
+                existing_pick = existing["pick"] if existing else None
 
-            cursor.execute("SELECT pick FROM picks WHERE username=%s AND game_id=%s", (username, game["game_id"]))
-            existing = cursor.fetchone()
+                if not locked:
+                    choice = st.radio(
+                        "Pick winner",
+                        [game["away"], game["home"]],
+                        index=(0 if existing_pick == game["away"] else 1 if existing_pick == game["home"] else 0),
+                        key=f"pick_{safe_key(game['game_id'])}_{safe_key(username)}"
+                    )
+                    
+                    if st.button("Save Pick", key=f"save_{safe_key(username)}_{safe_key(game['game_id'])}"):
+                        # Delete old pick first, then insert new one
+                        cursor.execute(
+                            "DELETE FROM picks WHERE username=%s AND game_id=%s", 
+                            (username, game["game_id"])
+                        )
+                        cursor.execute(
+                            "INSERT INTO picks (username, game_id, pick, timestamp) VALUES (%s, %s, %s, %s)",
+                            (username, game["game_id"], choice, now.isoformat())
+                        )
+                        conn.commit()
+                        st.success(f"Saved pick: {choice}")
+                        st.rerun()
 
-            if not locked:
-                choice = st.radio(
-                    "Pick winner",
-                    [game["away"], game["home"]],
-                    index=(0 if existing and existing[0] == game["home"] else 1 if existing else 0),
-                    key=f"{safe_key(game['game_id'])}_{safe_key(username)}"
-                )
-                conn.commit()
-            if st.button("Save Pick", key=f"save_{safe_key(username)}_{safe_key(game['game_id'])}"):
-
-                cursor.execute(
-                    "INSERT OR REPLACE INTO picks (username, game_id, pick, timestamp) VALUES (%s, %s, %s, %s)",
-                    (username, game["game_id"], choice, now.isoformat())
-                )
-                conn.commit()
-                st.success(f"Saved pick: {choice}")
-
-            else:
-                if existing:
-                    st.info(f"Your pick: **{existing[0]}**")
                 else:
-                    st.warning("No pick submitted")
+                    if existing_pick:
+                        st.info(f"Your pick: **{existing_pick}**")
+                    else:
+                        st.warning("No pick submitted")
 
-            # Show all picks after kickoff
-            if locked:
-                cursor.execute("SELECT username, pick FROM picks WHERE game_id=%s", (game["game_id"],))
-                st.table(cursor.fetchall())
+                # Show all picks after kickoff
+                if locked:
+                    cursor.execute("SELECT username, pick FROM picks WHERE game_id=%s", (game["game_id"],))
+                    all_picks = cursor.fetchall()
+                    if all_picks:
+                        import pandas as pd
+                        df = pd.DataFrame([{"User": p["username"], "Pick": p["pick"]} for p in all_picks])
+                        st.table(df)
 
             st.divider()
 
