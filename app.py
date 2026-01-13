@@ -489,6 +489,13 @@ if auth_status:
                             pick = pick_map[username][g["game_id"]]
                             # Show logo URL if pick exists, otherwise show —
                             row_data[g["game_id"]] = nfl_logo_url(pick, 500) if pick else "—"
+
+                            # And set a fixed pixel width for the columns
+                            for g in week_games:
+                                column_config[g["game_id"]] = st.column_config.ImageColumn(
+                                    g["game_id"],
+                                    width=80  # Fixed pixel width instead of "small"/"medium"
+                                )
                         else:
                             row_data[g["game_id"]] = "🔒"
 
