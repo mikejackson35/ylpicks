@@ -71,11 +71,11 @@ conn.commit()
 # SAMPLE GAMES
 # ----------------------------
 GAMES = [
-    {"game_id": "LAR @ CAR", "week": "Wild Card", "home": "Panthers", "away": "Rams", "kickoff": datetime(2026, 1, 13, 18, 20, tzinfo=timezone.utc)},
-    {"game_id": "CHI @ GB", "week": "Wild Card", "home": "Bears", "away": "Packers", "kickoff": datetime(2026, 1, 13, 18, 20, tzinfo=timezone.utc)},
-    {"game_id": "JAX @ BUF", "week": "Wild Card", "home": "Jaguars", "away": "Bills", "kickoff": datetime(2026, 1, 13, 18, 20, tzinfo=timezone.utc)},
-    {"game_id": "PHI @ SF", "week": "Wild Card", "home": "Eagles", "away": "49ers", "kickoff": datetime(2026, 1, 13, 18, 20, tzinfo=timezone.utc)},
-    {"game_id": "NE @ LAC", "week": "Wild Card", "home": "Patriots", "away": "Chargers", "kickoff": datetime(2026, 1, 13, 18, 20, tzinfo=timezone.utc)},
+    {"game_id": "LAR @ CAR", "week": "Wild Card", "home": "Panthers", "away": "Rams", "kickoff": datetime(2026, 1, 10, 18, 20, tzinfo=timezone.utc)},
+    {"game_id": "CHI @ GB", "week": "Wild Card", "home": "Bears", "away": "Packers", "kickoff": datetime(2026, 1, 10, 18, 20, tzinfo=timezone.utc)},
+    {"game_id": "JAX @ BUF", "week": "Wild Card", "home": "Jaguars", "away": "Bills", "kickoff": datetime(2026, 1, 11, 18, 20, tzinfo=timezone.utc)},
+    {"game_id": "PHI @ SF", "week": "Wild Card", "home": "Eagles", "away": "49ers", "kickoff": datetime(2026, 1, 11, 18, 20, tzinfo=timezone.utc)},
+    {"game_id": "NE @ LAC", "week": "Wild Card", "home": "Patriots", "away": "Chargers", "kickoff": datetime(2026, 1, 11, 18, 20, tzinfo=timezone.utc)},
     {"game_id": "PIT @ HOU", "week": "Wild Card", "home": "Steelers", "away": "Texans", "kickoff": datetime(2026, 1, 13, 18, 20, tzinfo=timezone.utc)},
     {"game_id": "Bills @ Broncos", "week": "Divisional", "home": "Broncos", "away": "Bills", "kickoff": datetime(2026, 1, 17, 22, 0, tzinfo=timezone.utc)},
     {"game_id": "49ers @ Seahawks", "week": "Divisional", "home": "Seahawks", "away": "49ers", "kickoff": datetime(2026, 1, 17, 15, 0, tzinfo=timezone.utc)},
