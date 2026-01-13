@@ -370,6 +370,7 @@ if auth_status:
                         )
 
                     with col2:
+                        st.write("")
                         if st.button("Save", key=f"save_{idx}"):
                             cursor.execute(
                                 "UPDATE games SET winner=%s WHERE game_id=%s",
