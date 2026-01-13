@@ -314,12 +314,6 @@ if auth_status:
     # ADMIN TOOLS
     if username in ADMINS:
         
-        # cursor.execute("SELECT COUNT(*) FROM users")
-        # st.sidebar.caption(f"Users in DB: {cursor.fetchone()['count']}")
-
-        # cursor.execute("SELECT COUNT(*) FROM picks")
-        # st.sidebar.caption(f"Picks in DB: {cursor.fetchone()['count']}")
-        
         with st.sidebar.expander("🛠 Admin: Set Game Winners"):
             cursor.execute("SELECT game_id, week, home, away, winner FROM games")
             games = cursor.fetchall()
@@ -384,7 +378,7 @@ if auth_status:
 
 
     if page == "Make Picks":
-            col1, space, col2 = st.columns([3,1,1])
+            col1, space, col2 = st.columns([3,.5,1.5])
             with col1:
                 st.title("Make Picks")
             # st.sidebar.divider()
@@ -445,7 +439,7 @@ if auth_status:
                         st.warning("No pick submitted")
 
     elif page == "All Picks":
-                col1, space, col2 = st.columns([3,1,1])
+                col1, space, col2 = st.columns([3,.5,1.5])
                 with col1:
                     st.title("All Picks")
                 # st.sidebar.divider()
