@@ -406,7 +406,7 @@ if auth_status:
 
                 else:
                     if existing_pick:
-                        st.info(f"Your pick: **{existing_pick}**")
+                        st.info(f"Your locked pick: **{existing_pick}**")
                     else:
                         st.warning("No pick submitted")
 
