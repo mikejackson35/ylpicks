@@ -370,7 +370,7 @@ if auth_status:
                         )
 
                     with col2:
-                        # st.space(size="small")
+                        st.space(size="small")
                         # st.write("")
                         # st.write("")
                         if st.button("Save", key=f"save_{idx}"):
