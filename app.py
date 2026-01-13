@@ -402,24 +402,13 @@ if auth_status:
                         )
                         conn.commit()
                         st.success(f"Saved pick: {choice}")
-                        st.rerun()
+                        # st.rerun()
 
                 else:
                     if existing_pick:
                         st.info(f"Your pick: **{existing_pick}**")
                     else:
                         st.warning("No pick submitted")
-
-                # Show all picks after kickoff
-                # if locked:
-                #     cursor.execute("SELECT username, pick FROM picks WHERE game_id=%s", (game["game_id"],))
-                #     all_picks = cursor.fetchall()
-                #     if all_picks:
-                #         import pandas as pd
-                #         df = pd.DataFrame([{"User": p["username"], "Pick": p["pick"]} for p in all_picks])
-                #         st.table(df)
-
-            st.divider()
 
     elif page == "Weekly Grid":
         st.title("📊 Weekly Picks Grid")
