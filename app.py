@@ -477,15 +477,17 @@ if auth_status:
                     )
                     rows = cursor.fetchall()
 
+                    from datetime import datetime, timezone
+
                     # 3️⃣ Build lookup: username -> game_id -> pick
                     pick_map = {u: {gid: None for gid in game_ids} for u in usernames}
                     for row in rows:
                         pick_map[row["username"]][row["game_id"]] = row["pick"]
 
                     # 4️⃣ Build display table with lock logic
-                    from datetime import timezone
                     now = datetime.now(timezone.utc)
                     table = []
+
                     for user in users:
                         username = user["username"]
                         full_name = user["name"]
@@ -493,13 +495,13 @@ if auth_status:
 
                         for g in week_games:
                             locked = now >= g["kickoff"]
+                            pick = pick_map[username][g["game_id"]]
 
                             if locked:
-                                pick = pick_map[username][g["game_id"]]
-                                # Show logo URL if pick exists, otherwise show —
+                                # Game is locked → show pick’s team logo if available, otherwise dash
                                 row_data[g["game_id"]] = nfl_logo_url(pick, 500) if pick else "—"
-                                
                             else:
+                                # Game not locked → always show 🔒 regardless of pick selection
                                 row_data[g["game_id"]] = "🔒"
 
                         table.append(row_data)
