@@ -11,9 +11,6 @@ import streamlit as st
 
 import os
 
-st.write("CWD:", os.getcwd())
-st.write("Files in .streamlit:", os.listdir(".streamlit") if os.path.isdir(".streamlit") else "No .streamlit folder")
-
 
 # ----------------------------
 # Database Connection
