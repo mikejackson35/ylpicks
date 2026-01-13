@@ -401,7 +401,7 @@ if auth_status:
                             (username, game["game_id"], choice, now.isoformat())
                         )
                         conn.commit()
-                        st.success(f"Saved pick: {choice}")
+                        st.success(f"Saved pick: {existing_pick}")
                         st.rerun()
 
                 else:
