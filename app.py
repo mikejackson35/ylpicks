@@ -499,7 +499,7 @@ if auth_status:
                             if locked:
                                 pick = pick_map[username][g["game_id"]]
                                 # Show logo URL if pick exists, otherwise show —
-                                row_data[g["game_id"]] = nfl_logo_url(pick, 500) if pick else "—"
+                                row_data[g["game_id"]] = nfl_logo_url(pick, 500) if pick else "🔒"
                                 
                             else:
                                 row_data[g["game_id"]] = "🔒"
