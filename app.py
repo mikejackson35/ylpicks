@@ -362,7 +362,7 @@ if auth_status:
                         except ValueError:
                             current_index = 0
                         
-                        choice = st.selectbox(
+                        choice = st.sidebar.selectbox(
                             f"{away_clean} @ {home_clean}",
                             options,
                             index=current_index,
