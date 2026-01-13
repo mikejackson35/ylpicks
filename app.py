@@ -145,6 +145,17 @@ def nfl_logo_url(pick: str, size: int = 500):
 
     return f"https://a.espncdn.com/i/teamlogos/nfl/{size}/{espn_abbr}.png"
 
+def get_best_logo_url(team_name: str) -> str:
+    """Try multiple sizes to find one that works"""
+    if not team_name:
+        return None
+    
+    # Try sizes in order of preference: 200, 100, 500
+    for size in [200, 100, 500]:
+        url = nfl_logo_url(team_name, size)
+        if url:
+            return url
+    return None
 
 
 def add_test_user():
@@ -488,7 +499,7 @@ if auth_status:
                             if locked:
                                 pick = pick_map[username][g["game_id"]]
                                 # Show logo URL if pick exists, otherwise show —
-                                row_data[g["game_id"]] = nfl_logo_url(pick, 200) if pick else "—"
+                                row_data[g["game_id"]] = get_best_logo_url(pick) if pick else "—"
                             else:
                                 row_data[g["game_id"]] = "🔒"
 
@@ -506,7 +517,7 @@ if auth_status:
                     for g in week_games:
                         column_config[g["game_id"]] = st.column_config.ImageColumn(
                             g["game_id"],
-                            width=80  # Use fixed pixel width for sharper logos
+                            width=60  # Use fixed pixel width for sharper logos
                         )
                     
                     st.dataframe(
