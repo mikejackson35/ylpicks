@@ -326,12 +326,12 @@ if auth_status:
         cursor.execute("SELECT COUNT(*) FROM picks")
         st.sidebar.caption(f"Picks in DB: {cursor.fetchone()['count']}")
         
-        with st.expander("🛠 Admin: Set Game Winners"):
+        with st.sidebar.expander("🛠 Admin: Set Game Winners"):
             cursor.execute("SELECT game_id, week, home, away, winner FROM games")
             games = cursor.fetchall()
 
             if not games:
-                st.info("No games found in database")
+                st.sidebar.info("No games found in database")
             else:
                 # Sort games by round order
                 games_sorted = sorted(games, key=lambda g: ROUND_ORDER.index(g["week"]))
@@ -345,7 +345,7 @@ if auth_status:
                     
                     # Show round header
                     if idx == 0 or games_sorted[idx-1]["week"] != week:
-                        st.subheader(week)
+                        st.sidebar.subheader(week)
                     
                     col1, col2 = st.columns([3, 1])
                     
