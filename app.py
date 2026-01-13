@@ -331,7 +331,7 @@ if auth_status:
             games = cursor.fetchall()
 
             if not games:
-                st.sidebar.info("No games found in database")
+                st.info("No games found in database")
             else:
                 # Sort games by round order
                 games_sorted = sorted(games, key=lambda g: ROUND_ORDER.index(g["week"]))
