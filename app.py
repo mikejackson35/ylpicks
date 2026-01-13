@@ -9,36 +9,36 @@ from utils import TEAM_ABBR, TEAM_ALIAS
 
 import streamlit as st
 
-st.markdown(
-    """
-    <style>
-    div[data-testid="stDataFrame"] table,
-    div[data-testid="stDataEditor"] table {
-        border-collapse: separate !important;
-        border-spacing: 0;
-    }
+# st.markdown(
+#     """
+#     <style>
+#     div[data-testid="stDataFrame"] table,
+#     div[data-testid="stDataEditor"] table {
+#         border-collapse: separate !important;
+#         border-spacing: 0;
+#     }
 
-    /* Softer but visible border color */
-    div[data-testid="stDataFrame"] th,
-    div[data-testid="stDataFrame"] td,
-    div[data-testid="stDataEditor"] th,
-    div[data-testid="stDataEditor"] td {
-        border: 1px solid #4b5563 !important;
-    }
+#     /* Softer but visible border color */
+#     div[data-testid="stDataFrame"] th,
+#     div[data-testid="stDataFrame"] td,
+#     div[data-testid="stDataEditor"] th,
+#     div[data-testid="stDataEditor"] td {
+#         border: 1px solid #4b5563 !important;
+#     }
 
-    /* Slightly different background for rows */
-    div[data-testid="stDataFrame"] tbody tr:nth-child(odd) td,
-    div[data-testid="stDataEditor"] tbody tr:nth-child(odd) td {
-        background-color: #020617 !important;
-    }
-    div[data-testid="stDataFrame"] tbody tr:nth-child(even) td,
-    div[data-testid="stDataEditor"] tbody tr:nth-child(even) td {
-        background-color: #030712 !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+#     /* Slightly different background for rows */
+#     div[data-testid="stDataFrame"] tbody tr:nth-child(odd) td,
+#     div[data-testid="stDataEditor"] tbody tr:nth-child(odd) td {
+#         background-color: #020617 !important;
+#     }
+#     div[data-testid="stDataFrame"] tbody tr:nth-child(even) td,
+#     div[data-testid="stDataEditor"] tbody tr:nth-child(even) td {
+#         background-color: #030712 !important;
+#     }
+#     </style>
+#     """,
+#     unsafe_allow_html=True,
+# )
 
 
 # ----------------------------
