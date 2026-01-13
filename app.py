@@ -326,7 +326,7 @@ if auth_status:
         cursor.execute("SELECT COUNT(*) FROM picks")
         st.sidebar.caption(f"Picks in DB: {cursor.fetchone()['count']}")
         
-        with st.sidebar.expander("🛠 Admin: Set Game Winners"):
+        with st.expander("🛠 Admin: Set Game Winners"):
             cursor.execute("SELECT game_id, week, home, away, winner FROM games")
             games = cursor.fetchall()
 
@@ -345,7 +345,7 @@ if auth_status:
                     
                     # Show round header
                     if idx == 0 or games_sorted[idx-1]["week"] != week:
-                        st.sidebar.subheader(week)
+                        st.subheader(week)
                     
                     col1, col2 = st.columns([3, 1])
                     
@@ -362,7 +362,7 @@ if auth_status:
                         except ValueError:
                             current_index = 0
                         
-                        choice = st.sidebar.selectbox(
+                        choice = st.selectbox(
                             f"{away_clean} @ {home_clean}",
                             options,
                             index=current_index,
@@ -370,7 +370,7 @@ if auth_status:
                         )
 
                     with col2:
-                        if st.sidebar.button("Save", key=f"save_{idx}"):
+                        if st.button("Save", key=f"save_{idx}"):
                             cursor.execute(
                                 "UPDATE games SET winner=%s WHERE game_id=%s",
                                 (choice if choice else None, game_id)
@@ -499,7 +499,7 @@ if auth_status:
                             if locked:
                                 pick = pick_map[username][g["game_id"]]
                                 # Show logo URL if pick exists, otherwise show —
-                                row_data[g["game_id"]] = nfl_logo_url(pick, 500) if pick else "🔒"
+                                row_data[g["game_id"]] = nfl_logo_url(pick, 500) if pick else "—"
                                 
                             else:
                                 row_data[g["game_id"]] = "🔒"
