@@ -370,7 +370,7 @@ if auth_status:
                         )
 
                     with col2:
-                        if st.button("Save", key=f"save_{idx}"):
+                        if st.sidebar.button("Save", key=f"save_{idx}"):
                             cursor.execute(
                                 "UPDATE games SET winner=%s WHERE game_id=%s",
                                 (choice if choice else None, game_id)
