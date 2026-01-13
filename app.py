@@ -28,9 +28,6 @@ conn = get_connection()
 
 if conn is None:
     st.stop()  # Stop the app if DB connection fails
-# else:
-#     cursor = conn.cursor()
-#     st.success("Connected to Supabase successfully!")
 cursor = conn.cursor()
 
 
@@ -124,12 +121,6 @@ ADMINS = {"mj"}  # set of usernames allowed to see admin tools
 # HELPER FUNCTIONS
 # ----------------------------
 
-# def nfl_logo_url(team_abbr: str, size: int = 500) -> str:
-#     espn_abbr = TEAM_ABBR.get(team_abbr.upper())
-#     if not espn_abbr:
-#         return None
-#     return f"https://a.espncdn.com/i/teamlogos/nfl/{size}/{espn_abbr}.png"
-
 def nfl_logo_url(pick: str, size: int = 500):
     if not pick:
         return None
@@ -191,11 +182,7 @@ conn.commit()
 # ----------------------------
 # SETUP
 # ----------------------------
-
-# Add test user if none exist
 add_test_user()
-
-# Seed games if not already present
 seed_games()
 
 # ----------------------------
