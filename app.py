@@ -411,62 +411,67 @@ if auth_status:
                         st.warning("No pick submitted")
 
     elif page == "Weekly Grid":
-        st.title("📊 Weekly Picks Grid")
-        st.sidebar.divider()
+            st.title("📊 Weekly Picks Grid")
+            st.sidebar.divider()
 
-        # Sidebar round selector
-        week = st.sidebar.selectbox(
-            "Select Round",
-            [r for r in ROUND_ORDER if r in {g["week"] for g in GAMES}]
-        )
-
-        week_games = [g for g in GAMES if g["week"] == week]
-        game_ids = [g["game_id"] for g in week_games]
-
-        if not game_ids:
-            st.info("No games for this round.")
-        else:
-            # 1️⃣ Get all users and their full names
-            cursor.execute("SELECT username, name FROM users")
-            users = cursor.fetchall()  # list of (username, name)
-            usernames = [u for u, _ in users]
-            name_map = {u: n for u, n in users}
-
-            # 2️⃣ Get picks for these games
-            placeholders = ",".join("%s" * len(game_ids))
-            cursor.execute(
-                f"""
-                SELECT username, game_id, pick
-                FROM picks
-                WHERE game_id IN ({placeholders})
-                """,
-                game_ids
+            # Sidebar round selector
+            week = st.sidebar.selectbox(
+                "Select Round",
+                [r for r in ROUND_ORDER if r in {g["week"] for g in GAMES}]
             )
-            rows = cursor.fetchall()
 
-            # 3️⃣ Build lookup: username -> game_id -> pick
-            pick_map = {u: {gid: None for gid in game_ids} for u in usernames}
-            for username, game_id, pick in rows:
-                pick_map[username][game_id] = pick
+            week_games = [g for g in GAMES if g["week"] == week]
+            game_ids = [g["game_id"] for g in week_games]
 
-            # 4️⃣ Build display table with lock logic
-            now = datetime.now()
-            table = []
-            for username, full_name in users:
-                row = {"User": full_name}  # display full name
+            if not game_ids:
+                st.info("No games for this round.")
+            else:
+                # 1️⃣ Get all users and their full names
+                cursor.execute("SELECT username, name FROM users")
+                users = cursor.fetchall()  # list of dicts
+                usernames = [u["username"] for u in users]
+                name_map = {u["username"]: u["name"] for u in users}
 
-                for g in week_games:
-                    locked = now >= g["kickoff"]
+                # 2️⃣ Get picks for these games
+                placeholders = ",".join(["%s"] * len(game_ids))
+                cursor.execute(
+                    f"""
+                    SELECT username, game_id, pick
+                    FROM picks
+                    WHERE game_id IN ({placeholders})
+                    """,
+                    tuple(game_ids)  # Pass as tuple, not list
+                )
+                rows = cursor.fetchall()
 
-                    if locked:
-                        row[g["game_id"]] = pick_map[username][g["game_id"]] or "—"
-                    else:
-                        row[g["game_id"]] = "🔒"
+                # 3️⃣ Build lookup: username -> game_id -> pick
+                pick_map = {u: {gid: None for gid in game_ids} for u in usernames}
+                for row in rows:
+                    pick_map[row["username"]][row["game_id"]] = row["pick"]
 
-                table.append(row)
+                # 4️⃣ Build display table with lock logic
+                from datetime import timezone
+                now = datetime.now(timezone.utc)
+                table = []
+                for user in users:
+                    username = user["username"]
+                    full_name = user["name"]
+                    row_data = {"User": full_name}  # display full name
 
-            # 5️⃣ Display using st.table (removes index)
-            st.table(table)
+                    for g in week_games:
+                        locked = now >= g["kickoff"]
+
+                        if locked:
+                            row_data[g["game_id"]] = pick_map[username][g["game_id"]] or "—"
+                        else:
+                            row_data[g["game_id"]] = "🔒"
+
+                    table.append(row_data)
+
+                # 5️⃣ Display using st.dataframe for better formatting
+                import pandas as pd
+                df = pd.DataFrame(table)
+                st.dataframe(df, width="stretch", hide_index=True)
 
 
 
