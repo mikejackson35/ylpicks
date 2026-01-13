@@ -5,7 +5,7 @@ from psycopg2.extras import RealDictCursor
 import bcrypt
 
 from datetime import datetime, timezone
-from utils import TEAM_ABBR
+from utils import TEAM_ABBR, TEAM_ALIAS
 
 
 # ----------------------------
@@ -124,11 +124,27 @@ ADMINS = {"mj"}  # set of usernames allowed to see admin tools
 # HELPER FUNCTIONS
 # ----------------------------
 
-def nfl_logo_url(team_abbr: str, size: int = 500) -> str:
-    espn_abbr = TEAM_ABBR.get(team_abbr.upper())
+# def nfl_logo_url(team_abbr: str, size: int = 500) -> str:
+#     espn_abbr = TEAM_ABBR.get(team_abbr.upper())
+#     if not espn_abbr:
+#         return None
+#     return f"https://a.espncdn.com/i/teamlogos/nfl/{size}/{espn_abbr}.png"
+
+def nfl_logo_url(pick: str, size: int = 500):
+    if not pick:
+        return None
+
+    key = pick.strip().upper()
+
+    # Convert abbreviations → team name
+    key = TEAM_ALIAS.get(key, key)
+
+    espn_abbr = TEAM_ABBR.get(key)
     if not espn_abbr:
         return None
+
     return f"https://a.espncdn.com/i/teamlogos/nfl/{size}/{espn_abbr}.png"
+
 
 
 def add_test_user():
