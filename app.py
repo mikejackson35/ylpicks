@@ -530,7 +530,7 @@ if auth_status:
 
         # 7️⃣ Display in Streamlit with Points column right-aligned
         st.dataframe(
-            # df.style.format({"Points": "{:>d}"}),  # right-align numbers
+            df.style.format({"Points": "{:>d}"}),  # right-align numbers
             width="stretch",  # Changed from use_container_width=True,
             hide_index=True
         )
