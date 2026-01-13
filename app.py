@@ -9,36 +9,36 @@ from utils import TEAM_ABBR, TEAM_ALIAS
 
 import streamlit as st
 
-# st.markdown(
-#     """
-#     <style>
-#     div[data-testid="stDataFrame"] table,
-#     div[data-testid="stDataEditor"] table {
-#         border-collapse: separate !important;
-#         border-spacing: 0;
-#     }
+st.markdown(
+    """
+    <style>
+    div[data-testid="stDataFrame"] table,
+    div[data-testid="stDataEditor"] table {
+        border-collapse: separate !important;
+        border-spacing: 0;
+    }
 
-#     /* Softer but visible border color */
-#     div[data-testid="stDataFrame"] th,
-#     div[data-testid="stDataFrame"] td,
-#     div[data-testid="stDataEditor"] th,
-#     div[data-testid="stDataEditor"] td {
-#         border: 1px solid #4b5563 !important;
-#     }
+    /* Softer but visible border color */
+    div[data-testid="stDataFrame"] th,
+    div[data-testid="stDataFrame"] td,
+    div[data-testid="stDataEditor"] th,
+    div[data-testid="stDataEditor"] td {
+        border: 1px solid #4b5563 !important;
+    }
 
-#     /* Slightly different background for rows */
-#     div[data-testid="stDataFrame"] tbody tr:nth-child(odd) td,
-#     div[data-testid="stDataEditor"] tbody tr:nth-child(odd) td {
-#         background-color: #020617 !important;
-#     }
-#     div[data-testid="stDataFrame"] tbody tr:nth-child(even) td,
-#     div[data-testid="stDataEditor"] tbody tr:nth-child(even) td {
-#         background-color: #030712 !important;
-#     }
-#     </style>
-#     """,
-#     unsafe_allow_html=True,
-# )
+    /* Slightly different background for rows */
+    div[data-testid="stDataFrame"] tbody tr:nth-child(odd) td,
+    div[data-testid="stDataEditor"] tbody tr:nth-child(odd) td {
+        background-color: #020617 !important;
+    }
+    div[data-testid="stDataFrame"] tbody tr:nth-child(even) td,
+    div[data-testid="stDataEditor"] tbody tr:nth-child(even) td {
+        background-color: #030712 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # ----------------------------
@@ -108,10 +108,10 @@ GAMES = [
     {"game_id": "PHI @ SF", "week": "Wild Card", "home": "Eagles", "away": "49ers", "kickoff": datetime(2026, 1, 11, 18, 20, tzinfo=timezone.utc)},
     {"game_id": "NE @ LAC", "week": "Wild Card", "home": "Patriots", "away": "Chargers", "kickoff": datetime(2026, 1, 11, 18, 20, tzinfo=timezone.utc)},
     {"game_id": "PIT @ HOU", "week": "Wild Card", "home": "Steelers", "away": "Texans", "kickoff": datetime(2026, 1, 13, 18, 10, tzinfo=timezone.utc)},
-    {"game_id": "Bills @ Broncos", "week": "Divisional", "home": "Broncos", "away": "Bills", "kickoff": datetime(2026, 1, 17, 22, 0, tzinfo=timezone.utc)},
-    {"game_id": "49ers @ Seahawks", "week": "Divisional", "home": "Seahawks", "away": "49ers", "kickoff": datetime(2026, 1, 17, 15, 0, tzinfo=timezone.utc)},
-    {"game_id": "Rams @ Bears", "week": "Divisional", "home": "Bears", "away": "Rams", "kickoff": datetime(2026, 1, 18, 19, 30, tzinfo=timezone.utc)},
-    {"game_id": "Texans @ Patriots", "week": "Divisional", "home": "Patriots", "away": "Texans", "kickoff": datetime(2026, 1, 18, 22, 0, tzinfo=timezone.utc)},
+    {"game_id": "BUF @ DEN", "week": "Divisional", "home": "Broncos", "away": "Bills", "kickoff": datetime(2026, 1, 17, 22, 0, tzinfo=timezone.utc)},
+    {"game_id": "SF @ SEA", "week": "Divisional", "home": "Seahawks", "away": "49ers", "kickoff": datetime(2026, 1, 17, 15, 0, tzinfo=timezone.utc)},
+    {"game_id": "LAR @ CHI", "week": "Divisional", "home": "Bears", "away": "Rams", "kickoff": datetime(2026, 1, 18, 19, 30, tzinfo=timezone.utc)},
+    {"game_id": "HOU @ NE", "week": "Divisional", "home": "Patriots", "away": "Texans", "kickoff": datetime(2026, 1, 18, 22, 0, tzinfo=timezone.utc)},
     {"game_id": "Con1", "week": "Conference", "home": "Team A", "away": "Team B", "kickoff": datetime(2026, 1, 25, 19, 30, tzinfo=timezone.utc)},
     {"game_id": "Con2", "week": "Conference", "home": "Team C", "away": "Team D", "kickoff": datetime(2026, 1, 25, 22, 0, tzinfo=timezone.utc)},
     {"game_id": "SB", "week": "Superbowl", "home": "Team A", "away": "Team B", "kickoff": datetime(2026, 2, 1, 15, 0, tzinfo=timezone.utc)}
