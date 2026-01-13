@@ -4,6 +4,8 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import bcrypt
 
+from datetime import datetime, timezone
+
 
 # ----------------------------
 # Database Connection
@@ -69,19 +71,19 @@ conn.commit()
 # SAMPLE GAMES
 # ----------------------------
 GAMES = [
-    {"game_id": "LAR @ CAR", "week": "Wild Card", "home": "Panthers", "away": "Rams", "kickoff": datetime(2026, 1, 14, 18, 20)},
-    {"game_id": "CHI @ GB", "week": "Wild Card", "home": "Bears", "away": "Packers", "kickoff": datetime(2026, 1, 14, 18, 20)},
-    {"game_id": "JAX @ BUF", "week": "Wild Card", "home": "Jaguars", "away": "Bills", "kickoff": datetime(2026, 1, 14, 18, 20)},
-    {"game_id": "PHI @ SF", "week": "Wild Card", "home": "Eagles", "away": "49ers", "kickoff": datetime(2026, 1, 14, 18, 20)},
-    {"game_id": "NE @ LAC", "week": "Wild Card", "home": "Patriots", "away": "Chargers", "kickoff": datetime(2026, 1, 14, 18, 20)},
-    {"game_id": "PIT @ HOU", "week": "Wild Card", "home": "Steelers", "away": "Texans", "kickoff": datetime(2026, 1, 14, 18, 20)},
-    {"game_id": "Bills @ Broncos", "week": "Divisional", "home": "Broncos", "away": "Bills", "kickoff": datetime(2026, 1, 17, 22, 0)},
-    {"game_id": "49ers @ Seahawks", "week": "Divisional", "home": "Seahawks", "away": "49ers", "kickoff": datetime(2026, 1, 17, 15, 0)},
-    {"game_id": "Rams @ Bears", "week": "Divisional", "home": "Bears", "away": "Rams", "kickoff": datetime(2026, 1, 18, 19, 30)},
-    {"game_id": "Texans @ Patriots", "week": "Divisional", "home": "Patriots", "away": "Texans", "kickoff": datetime(2026, 1, 18, 22, 0)},
-    {"game_id": "Con1", "week": "Conference", "home": "Team A", "away": "Team B", "kickoff": datetime(2026, 1, 25, 19, 30)},
-    {"game_id": "Con2", "week": "Conference", "home": "Team C", "away": "Team D", "kickoff": datetime(2026, 1, 25, 22, 0)},
-    {"game_id": "SB", "week": "Superbowl", "home": "Team A", "away": "Team B", "kickoff": datetime(2026, 2, 1, 15, 0)}
+    {"game_id": "LAR @ CAR", "week": "Wild Card", "home": "Panthers", "away": "Rams", "kickoff": datetime(2026, 1, 14, 18, 20, tzinfo=timezone.utc)},
+    {"game_id": "CHI @ GB", "week": "Wild Card", "home": "Bears", "away": "Packers", "kickoff": datetime(2026, 1, 14, 18, 20, tzinfo=timezone.utc)},
+    {"game_id": "JAX @ BUF", "week": "Wild Card", "home": "Jaguars", "away": "Bills", "kickoff": datetime(2026, 1, 14, 18, 20, tzinfo=timezone.utc)},
+    {"game_id": "PHI @ SF", "week": "Wild Card", "home": "Eagles", "away": "49ers", "kickoff": datetime(2026, 1, 14, 18, 20, tzinfo=timezone.utc)},
+    {"game_id": "NE @ LAC", "week": "Wild Card", "home": "Patriots", "away": "Chargers", "kickoff": datetime(2026, 1, 14, 18, 20, tzinfo=timezone.utc)},
+    {"game_id": "PIT @ HOU", "week": "Wild Card", "home": "Steelers", "away": "Texans", "kickoff": datetime(2026, 1, 14, 18, 20, tzinfo=timezone.utc)},
+    {"game_id": "Bills @ Broncos", "week": "Divisional", "home": "Broncos", "away": "Bills", "kickoff": datetime(2026, 1, 17, 22, 0, tzinfo=timezone.utc)},
+    {"game_id": "49ers @ Seahawks", "week": "Divisional", "home": "Seahawks", "away": "49ers", "kickoff": datetime(2026, 1, 17, 15, 0, tzinfo=timezone.utc)},
+    {"game_id": "Rams @ Bears", "week": "Divisional", "home": "Bears", "away": "Rams", "kickoff": datetime(2026, 1, 18, 19, 30, tzinfo=timezone.utc)},
+    {"game_id": "Texans @ Patriots", "week": "Divisional", "home": "Patriots", "away": "Texans", "kickoff": datetime(2026, 1, 18, 22, 0, tzinfo=timezone.utc)},
+    {"game_id": "Con1", "week": "Conference", "home": "Team A", "away": "Team B", "kickoff": datetime(2026, 1, 25, 19, 30, tzinfo=timezone.utc)},
+    {"game_id": "Con2", "week": "Conference", "home": "Team C", "away": "Team D", "kickoff": datetime(2026, 1, 25, 22, 0, tzinfo=timezone.utc)},
+    {"game_id": "SB", "week": "Superbowl", "home": "Team A", "away": "Team B", "kickoff": datetime(2026, 2, 1, 15, 0, tzinfo=timezone.utc)}
 ]
 
 def seed_games():
