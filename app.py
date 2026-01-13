@@ -279,11 +279,11 @@ if not auth_status:
 if auth_status:
     with st.sidebar:
         st.success(f"Logged in as {name}")
-        if st.button("Logout"):
-            st.session_state["authentication_status"] = None
-            st.session_state["username"] = None
-            st.session_state["name"] = None
-            st.rerun()
+#         if st.button("Logout"):
+#             st.session_state["authentication_status"] = None
+#             st.session_state["username"] = None
+#             st.session_state["name"] = None
+#             st.rerun()
 
 
 # ----------------------------
@@ -318,15 +318,18 @@ if auth_status:
                 else:
                     st.error("User not found")
 
+    # st.sidebar.divider()
+
     # ADMIN TOOLS
     if username in ADMINS:
-        cursor.execute("SELECT COUNT(*) FROM users")
-        st.sidebar.caption(f"Users in DB: {cursor.fetchone()['count']}")
-
-        cursor.execute("SELECT COUNT(*) FROM picks")
-        st.sidebar.caption(f"Picks in DB: {cursor.fetchone()['count']}")
         
-        with st.expander("🛠 Admin: Set Game Winners"):
+        # cursor.execute("SELECT COUNT(*) FROM users")
+        # st.sidebar.caption(f"Users in DB: {cursor.fetchone()['count']}")
+
+        # cursor.execute("SELECT COUNT(*) FROM picks")
+        # st.sidebar.caption(f"Picks in DB: {cursor.fetchone()['count']}")
+        
+        with st.sidebar.expander("🛠 Admin: Set Game Winners"):
             cursor.execute("SELECT game_id, week, home, away, winner FROM games")
             games = cursor.fetchall()
 
@@ -371,8 +374,6 @@ if auth_status:
 
                     with col2:
                         st.space(size="small")
-                        # st.write("")
-                        # st.write("")
                         if st.button("Save", key=f"save_{idx}"):
                             cursor.execute(
                                 "UPDATE games SET winner=%s WHERE game_id=%s",
@@ -385,21 +386,25 @@ if auth_status:
 
 
     st.sidebar.divider()
+
     # PAGE NAVIGATION
-    PAGES = ["Leaderboard", "Weekly Grid", "Make Picks"]
+    PAGES = ["Leaderboard", "All Picks", "Make Picks"]
     page = st.sidebar.radio("Go to", PAGES)
 
 
     if page == "Make Picks":
-            st.write(f"Hello **{name}**!")
-            st.title("Make Picks Here")
-            st.sidebar.divider()
-
+            col1, space, col2 = st.columns([3,1,1])
+            with col1:
+                st.title("Make Picks")
+            # st.sidebar.divider()
+            with col2:
             # PICK'EM LOGIC
-            week = st.sidebar.selectbox(
-                "Select Round",
-                [r for r in ROUND_ORDER if r in {g["week"] for g in GAMES}]
-            )
+                week = st.selectbox(
+                    "",
+                    [r for r in ROUND_ORDER if r in {g["week"] for g in GAMES}]
+                )
+
+            st.sidebar.divider()
 
             # Fix deprecated datetime
             from datetime import timezone
@@ -448,15 +453,20 @@ if auth_status:
                     else:
                         st.warning("No pick submitted")
 
-    elif page == "Weekly Grid":
-                st.title("📊 Weekly Picks Grid")
-                st.sidebar.divider()
+    elif page == "All Picks":
+                col1, space, col2 = st.columns([3,1,1])
+                with col1:
+                    st.title("All Picks")
+                # st.sidebar.divider()
+                with col2:
+                # PICK'EM LOGIC
+                    week = st.selectbox(
+                        "",
+                        [r for r in ROUND_ORDER if r in {g["week"] for g in GAMES}]
+                    )
 
-                # Sidebar round selector
-                week = st.sidebar.selectbox(
-                    "Select Round",
-                    [r for r in ROUND_ORDER if r in {g["week"] for g in GAMES}]
-                )
+                st.sidebar.divider()
+                st.write('')
 
                 week_games = [g for g in GAMES if g["week"] == week]
                 game_ids = [g["game_id"] for g in week_games]
@@ -514,7 +524,7 @@ if auth_status:
                     df = pd.DataFrame(table)
                     
                     column_config = {
-                        "User": st.column_config.TextColumn("User", width="medium")
+                        "User": st.column_config.TextColumn("User", width="small")
                     }
                     
                     # Configure each game column to show images
@@ -528,7 +538,8 @@ if auth_status:
                         df,
                         width="stretch",
                         hide_index=True,
-                        column_config=column_config
+                        column_config=column_config,
+                        row_height=60
                     )
 
 
@@ -586,14 +597,34 @@ if auth_status:
         df.columns = ["Name", "Points"]
         df = df.sort_values("Points", ascending=False).reset_index(drop=True)
 
+        column_config = {
+            "Name": st.column_config.TextColumn("Name", width='large'),
+            "Points": st.column_config.NumberColumn("Points", width='content')
+        }
+
         # 7️⃣ Display in Streamlit with Points column right-aligned
         st.dataframe(
-            df.style.format({"Points": "{:>d}"}),  # right-align numbers
-            width="stretch",  # Changed from use_container_width=True,
-            hide_index=True
+            df,
+            width="stretch",
+            hide_index=True,
+            column_config=column_config
         )
 
 
+
+
+
+# ----------------------------
+# LOGOUT
+# ----------------------------
+if auth_status:
+    with st.sidebar:
+        # st.success(f"Logged in as {name}")
+        if st.button("Logout"):
+            st.session_state["authentication_status"] = None
+            st.session_state["username"] = None
+            st.session_state["name"] = None
+            st.rerun()
 
 
 
