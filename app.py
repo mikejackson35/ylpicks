@@ -506,20 +506,20 @@ if auth_status:
 
                         table.append(row_data)
 
-                    # 5️⃣ Create column config to render images
-                    import pandas as pd
+                    from datetime import timezone
+
+                    now = datetime.now(timezone.utc)
                     df = pd.DataFrame(table)
-                    
-                    column_config = {
-                        "User": st.column_config.TextColumn("User", width="small")
-                    }
-                    
-                    # Configure each game column to show images
+
+                    column_config = {"User": st.column_config.TextColumn("User", width="small")}
+
                     for g in week_games:
-                        column_config[g["game_id"]] = st.column_config.ImageColumn(
-                            g["game_id"],
-                            width=60  # Use fixed pixel width for sharper logos
-                        )
+                        locked = now >= g["kickoff"]
+                        if locked:
+                            column_config[g["game_id"]] = st.column_config.ImageColumn(g["game_id"], width=60)
+                        else:
+                            # Treat as text/emoji before lock
+                            column_config[g["game_id"]] = st.column_config.TextColumn(g["game_id"], width="small")
                     
                     st.dataframe(
                         df,
