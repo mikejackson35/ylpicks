@@ -507,8 +507,9 @@ if auth_status:
                         table.append(row_data)
 
                     from datetime import timezone
-
                     now = datetime.now(timezone.utc)
+                    
+                    import pandas as pd
                     df = pd.DataFrame(table)
 
                     column_config = {"User": st.column_config.TextColumn("User", width="small")}
