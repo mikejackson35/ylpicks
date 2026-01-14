@@ -5,7 +5,6 @@ from psycopg2.extras import RealDictCursor
 import bcrypt
 
 from datetime import datetime, timezone
-from utils import TEAM_ABBR, TEAM_ALIAS
 
 import os
 import re
@@ -275,7 +274,7 @@ if auth_status:
 
 
     if page == "Make Picks":
-        col1, space, col2 = st.columns([3, .5, 1.5])
+        col1, space, col2 = st.columns([2.25, .25, 2.50])
         with col1:
             st.title("Make Picks")
         with col2:
@@ -368,7 +367,7 @@ if auth_status:
 
 
     elif page == "All Picks":
-        col1, space, col2 = st.columns([3, .5, 1.5])
+        col1, space, col2 = st.columns([2.25, .25, 2.50])
         with col1:
             st.title("All Picks")
         with col2:
@@ -441,9 +440,9 @@ if auth_status:
         import pandas as pd
         df = pd.DataFrame(table)
 
-        column_config = {"User": st.column_config.TextColumn("User", width="small")}
+        column_config = {"User": st.column_config.TextColumn("User", width="content")}
         for tier_number in range(1, 6):
-            column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="medium")
+            column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="content")
 
         st.dataframe(
             df,
@@ -454,7 +453,7 @@ if auth_status:
         )
 
     elif page == "Leaderboard":
-        st.title("🏆 Leaderboard")
+        st.title("Leaderboard")
         st.sidebar.divider()
 
         # 1️⃣ Get all users
