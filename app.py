@@ -99,7 +99,7 @@ from datetime import datetime, timezone
 TOURNAMENTS = [
     {
         "tournament_id": "2026_sony_open",
-        "name": "Sony Open",
+        "name": "Sony Open in Hawaii",
         "start_time": datetime(2026, 1, 15, 6, 0, tzinfo=timezone.utc),
     },
     {
