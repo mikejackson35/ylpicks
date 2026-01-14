@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from utils import TEAM_ABBR, TEAM_ALIAS
 
 import os
+import re
 
 
 # ----------------------------
@@ -27,115 +28,24 @@ def get_connection():
 
 # Try to connect
 conn = get_connection()
-
 if conn is None:
     st.stop()  # Stop the app if DB connection fails
 cursor = conn.cursor()
 
 
-# Users table
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    username TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    password_hash TEXT NOT NULL
-)
-""")
-# tournaments table
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS tournaments (
-    tournament_id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    start_time TIMESTAMPTZ NOT NULL
-)
-""")
-# players table
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS players (
-    player_id TEXT PRIMARY KEY,
-    name TEXT NOT NULL
-)
-""")
-# tiers table
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS tiers (
-    tournament_id TEXT NOT NULL REFERENCES tournaments(tournament_id),
-    tier_number INTEGER NOT NULL CHECK (tier_number BETWEEN 1 AND 5),
-    player_id TEXT NOT NULL REFERENCES players(player_id),
-    PRIMARY KEY (tournament_id, tier_number, player_id)
-)
-""")
-# picks tables
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS picks (
-    username TEXT NOT NULL REFERENCES users(username),
-    tournament_id TEXT NOT NULL REFERENCES tournaments(tournament_id),
-    tier_number INTEGER NOT NULL CHECK (tier_number BETWEEN 1 AND 5),
-    player_id TEXT NOT NULL REFERENCES players(player_id),
-    timestamp TIMESTAMPTZ NOT NULL,
-    PRIMARY KEY (username, tournament_id, tier_number)
-)
-""")
-# results table
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS results (
-    tournament_id TEXT NOT NULL REFERENCES tournaments(tournament_id),
-    tier_number INTEGER NOT NULL CHECK (tier_number BETWEEN 1 AND 5),
-    winning_player_id TEXT NOT NULL REFERENCES players(player_id),
-    PRIMARY KEY (tournament_id, tier_number)
-)
-""")
-           
-
-
-conn.commit()
-
-
 # ----------------------------
-# SAMPLE TOURNAMENTS
+# ADMINS
 # ----------------------------
-from datetime import datetime, timezone
-
-TOURNAMENTS = [
-    {
-        "tournament_id": "2026_sony_open",
-        "name": "Sony Open in Hawaii",
-        "start_time": datetime(2026, 1, 15, 6, 0, tzinfo=timezone.utc),
-    },
-    {
-        "tournament_id": "2026_american_express",
-        "name": "The American Express",
-        "start_time": datetime(2026, 1, 22, 6, 0, tzinfo=timezone.utc),
-    },
-    {
-        "tournament_id": "2026_farmers",
-        "name": "Farmers Insurance Open",
-        "start_time": datetime(2026, 1, 29, 6, 0, tzinfo=timezone.utc),
-    },
-]
-
-
-def seed_tournaments():
-    for t in TOURNAMENTS:
-        cursor.execute(
-            """
-            INSERT INTO tournaments (tournament_id, name, start_time)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (tournament_id) DO NOTHING
-            """,
-            (t["tournament_id"], t["name"], t["start_time"])
-        )
-    conn.commit()
-
-
-
-
 ADMINS = {"mj"}  # set of usernames allowed to see admin tools
+
 
 # ----------------------------
 # HELPER FUNCTIONS
 # ----------------------------
-
+def safe_key(s: str) -> str:
+    """Convert string to Streamlit-safe widget key"""
+    s = s.replace(" ", "_").replace("@", "at")
+    return re.sub(r"[^0-9a-zA-Z_]", "", s)
 
 def add_test_user():
     cursor.execute("SELECT 1 FROM users WHERE username = %s", ("mj",))
@@ -148,26 +58,7 @@ def add_test_user():
         )
         conn.commit()
 
-
-
-import re
-
-def safe_key(s: str) -> str:
-    """
-    Converts a string into a Streamlit-safe widget key.
-    Replaces spaces with underscores, @ with 'at', and removes other special chars.
-    """
-    s = s.replace(' ', '_').replace('@', 'at')
-    # Remove anything that is not alphanumeric or underscore
-    s = re.sub(r'[^0-9a-zA-Z_]', '', s)
-    return s
-
-
-# ----------------------------
-# SETUP
-# ----------------------------
 add_test_user()
-seed_tournaments()
 
 # ----------------------------
 # AUTHENTICATION (Manual with bcrypt)
