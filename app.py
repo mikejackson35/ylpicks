@@ -7,8 +7,6 @@ import bcrypt
 from datetime import datetime, timezone
 from utils import TEAM_ABBR, TEAM_ALIAS
 
-import streamlit as st
-
 import os
 
 
@@ -43,81 +41,94 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL
 )
 """)
-# games table
+# tournaments table
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS games (
-    game_id TEXT PRIMARY KEY,
-    week TEXT NOT NULL,
-    home TEXT NOT NULL,
-    away TEXT NOT NULL,
-    kickoff TIMESTAMPTZ NOT NULL,
-    winner TEXT
+CREATE TABLE IF NOT EXISTS tournaments (
+    tournament_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    start_time TIMESTAMPTZ NOT NULL
 )
 """)
-
-# picks table
+# players table
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS players (
+    player_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL
+)
+""")
+# tiers table
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS tiers (
+    tournament_id TEXT NOT NULL REFERENCES tournaments(tournament_id),
+    tier_number INTEGER NOT NULL CHECK (tier_number BETWEEN 1 AND 5),
+    player_id TEXT NOT NULL REFERENCES players(player_id),
+    PRIMARY KEY (tournament_id, tier_number, player_id)
+)
+""")
+# picks tables
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS picks (
-    username TEXT REFERENCES users(username),
-    game_id TEXT REFERENCES games(game_id),
-    pick TEXT,
-    timestamp TIMESTAMPTZ,
-    PRIMARY KEY (username, game_id)
+    username TEXT NOT NULL REFERENCES users(username),
+    tournament_id TEXT NOT NULL REFERENCES tournaments(tournament_id),
+    tier_number INTEGER NOT NULL CHECK (tier_number BETWEEN 1 AND 5),
+    player_id TEXT NOT NULL REFERENCES players(player_id),
+    timestamp TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (username, tournament_id, tier_number)
 )
 """)
+# results table
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS results (
+    tournament_id TEXT NOT NULL REFERENCES tournaments(tournament_id),
+    tier_number INTEGER NOT NULL CHECK (tier_number BETWEEN 1 AND 5),
+    winning_player_id TEXT NOT NULL REFERENCES players(player_id),
+    PRIMARY KEY (tournament_id, tier_number)
+)
+""")
+           
+
 
 conn.commit()
 
 
 # ----------------------------
-# SAMPLE GAMES
+# SAMPLE TOURNAMENTS
 # ----------------------------
-GAMES = [
-    {"game_id": "LAR @ CAR", "week": "Wild Card", "home": "Panthers", "away": "Rams", "kickoff": datetime(2026, 1, 10, 18, 20, tzinfo=timezone.utc)},
-    {"game_id": "CHI @ GB", "week": "Wild Card", "home": "Bears", "away": "Packers", "kickoff": datetime(2026, 1, 10, 18, 20, tzinfo=timezone.utc)},
-    {"game_id": "JAX @ BUF", "week": "Wild Card", "home": "Jaguars", "away": "Bills", "kickoff": datetime(2026, 1, 11, 18, 20, tzinfo=timezone.utc)},
-    {"game_id": "PHI @ SF", "week": "Wild Card", "home": "Eagles", "away": "49ers", "kickoff": datetime(2026, 1, 11, 18, 20, tzinfo=timezone.utc)},
-    {"game_id": "NE @ LAC", "week": "Wild Card", "home": "Patriots", "away": "Chargers", "kickoff": datetime(2026, 1, 11, 18, 20, tzinfo=timezone.utc)},
-    {"game_id": "PIT @ HOU", "week": "Wild Card", "home": "Steelers", "away": "Texans", "kickoff": datetime(2026, 1, 13, 18, 10, tzinfo=timezone.utc)},
-    {"game_id": "BUF @ DEN", "week": "Divisional", "home": "Broncos", "away": "Bills", "kickoff": datetime(2026, 1, 17, 22, 0, tzinfo=timezone.utc)},
-    {"game_id": "SF @ SEA", "week": "Divisional", "home": "Seahawks", "away": "49ers", "kickoff": datetime(2026, 1, 17, 15, 0, tzinfo=timezone.utc)},
-    {"game_id": "LAR @ CHI", "week": "Divisional", "home": "Bears", "away": "Rams", "kickoff": datetime(2026, 1, 18, 19, 30, tzinfo=timezone.utc)},
-    {"game_id": "HOU @ NE", "week": "Divisional", "home": "Patriots", "away": "Texans", "kickoff": datetime(2026, 1, 18, 22, 0, tzinfo=timezone.utc)},
-    {"game_id": "Con1", "week": "Conference", "home": "Team A", "away": "Team B", "kickoff": datetime(2026, 1, 25, 19, 30, tzinfo=timezone.utc)},
-    {"game_id": "Con2", "week": "Conference", "home": "Team C", "away": "Team D", "kickoff": datetime(2026, 1, 25, 22, 0, tzinfo=timezone.utc)},
-    {"game_id": "SB", "week": "Superbowl", "home": "Team A", "away": "Team B", "kickoff": datetime(2026, 2, 1, 15, 0, tzinfo=timezone.utc)}
+from datetime import datetime, timezone
+
+TOURNAMENTS = [
+    {
+        "tournament_id": "2026_sony_open",
+        "name": "Sony Open",
+        "start_time": datetime(2026, 1, 15, 6, 0, tzinfo=timezone.utc),
+    },
+    {
+        "tournament_id": "2026_american_express",
+        "name": "The American Express",
+        "start_time": datetime(2026, 1, 22, 6, 0, tzinfo=timezone.utc),
+    },
+    {
+        "tournament_id": "2026_farmers",
+        "name": "Farmers Insurance Open",
+        "start_time": datetime(2026, 1, 29, 6, 0, tzinfo=timezone.utc),
+    },
 ]
 
-def seed_games():
-    for g in GAMES:
+
+def seed_tournaments():
+    for t in TOURNAMENTS:
         cursor.execute(
             """
-            INSERT INTO games (game_id, week, home, away, kickoff)
-            VALUES (%s, %s, %s, %s, %s)
-            ON CONFLICT (game_id) DO NOTHING
+            INSERT INTO tournaments (tournament_id, name, start_time)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (tournament_id) DO NOTHING
             """,
-            (g["game_id"], g["week"], g["home"], g["away"], g["kickoff"])
+            (t["tournament_id"], t["name"], t["start_time"])
         )
     conn.commit()
 
 
 
-# ----------------------------
-# PLAYOFF ROUND ORDER
-# ----------------------------
-ROUND_ORDER = [
-    "Wild Card",
-    "Divisional",
-    "Conference",
-    "Superbowl"
-]
-
-ROUND_WEIGHTS = {
-    "Wild Card": 1,
-    "Divisional": 2,
-    "Conference": 3,
-    "Superbowl": 4
-}
 
 ADMINS = {"mj"}  # set of usernames allowed to see admin tools
 
@@ -125,47 +136,18 @@ ADMINS = {"mj"}  # set of usernames allowed to see admin tools
 # HELPER FUNCTIONS
 # ----------------------------
 
-def nfl_logo_url(pick: str, size: int = 500):
-    if not pick:
-        return None
-
-    key = pick.strip().upper()
-
-    # Convert abbreviations → team name
-    key = TEAM_ALIAS.get(key, key)
-
-    espn_abbr = TEAM_ABBR.get(key)
-    if not espn_abbr:
-        return None
-
-    return f"https://a.espncdn.com/i/teamlogos/nfl/{size}/{espn_abbr}.png"
-
-def get_best_logo_url(team_name: str) -> str:
-    """Try multiple sizes to find one that works"""
-    if not team_name:
-        return None
-    
-    # Try sizes in order of preference: 200, 100, 500
-    for size in [200, 100, 500]:
-        url = nfl_logo_url(team_name, size)
-        if url:
-            return url
-    return None
-
 
 def add_test_user():
-    cursor.execute("SELECT COUNT(*) AS count FROM users")
-    if cursor.fetchone()["count"] == 0:
-        # Hash the password the same way as signup
+    cursor.execute("SELECT 1 FROM users WHERE username = %s", ("mj",))
+    if cursor.fetchone() is None:
         password = "password123"
         password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-        # Insert into DB
         cursor.execute(
             "INSERT INTO users (username, name, password_hash) VALUES (%s, %s, %s)",
             ("mj", "Mike", password_hash)
         )
         conn.commit()
+
 
 
 import re
@@ -180,14 +162,12 @@ def safe_key(s: str) -> str:
     s = re.sub(r'[^0-9a-zA-Z_]', '', s)
     return s
 
-conn.commit()
-
 
 # ----------------------------
 # SETUP
 # ----------------------------
 add_test_user()
-seed_games()
+seed_tournaments()
 
 # ----------------------------
 # AUTHENTICATION (Manual with bcrypt)
@@ -203,11 +183,12 @@ username = st.session_state["username"]
 name = st.session_state["name"]
 
 # Manual Login Form
-if not auth_status:
+if auth_status is not True:
     st.title("Login")
     
     with st.form("login_form"):
         login_username = st.text_input("Username")
+        # login_username = login_username.strip().lower()
         login_password = st.text_input("Password", type="password")
         submit = st.form_submit_button("Login")
         
@@ -237,6 +218,7 @@ if not auth_status:
 if not auth_status:
     with st.expander("Create a New Account"):
         new_username = st.text_input("Username")
+        # new_username = new_username.strip().lower()
         new_name = st.text_input("Name")
         new_pw = st.text_input("Password", type="password")
 
@@ -311,62 +293,86 @@ if auth_status:
 
     # st.sidebar.divider()
 
+    # ----------------------------
     # ADMIN TOOLS
-    if username in ADMINS:
-        
-        with st.sidebar.expander("🛠 Admin: Set Game Winners"):
-            cursor.execute("SELECT game_id, week, home, away, winner FROM games")
-            games = cursor.fetchall()
+    # ----------------------------
+    if auth_status and username in ADMINS:
 
-            if not games:
-                st.info("No games found in database")
+        with st.sidebar.expander("🛠 Admin: Set Tier Winners"):
+
+            # Select tournament
+            cursor.execute("""
+                SELECT tournament_id, name
+                FROM tournaments
+                ORDER BY start_time
+            """)
+            tournaments = cursor.fetchall()
+
+            if not tournaments:
+                st.info("No tournaments found")
             else:
-                # Sort games by round order
-                games_sorted = sorted(games, key=lambda g: ROUND_ORDER.index(g["week"]))
-                
-                for idx, game in enumerate(games_sorted):
-                    game_id = game["game_id"]
-                    week = game["week"]
-                    home = game["home"]
-                    away = game["away"]
-                    winner = game["winner"]
-                    
-                    # Show round header
-                    if idx == 0 or games_sorted[idx-1]["week"] != week:
-                        st.subheader(week)
-                    
-                    col1, col2 = st.columns([3, 1])
-                    
-                    with col1:
-                        # Strip whitespace and handle None
-                        winner_clean = winner.strip() if winner else None
-                        home_clean = home.strip()
-                        away_clean = away.strip()
-                        
-                        # Safely determine index
-                        options = ["", home_clean, away_clean]
-                        try:
-                            current_index = options.index(winner_clean) if winner_clean else 0
-                        except ValueError:
-                            current_index = 0
-                        
-                        choice = st.selectbox(
-                            f"{away_clean} @ {home_clean}",
-                            options,
-                            index=current_index,
-                            key=f"winner_{idx}"
-                        )
+                tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
+                selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
+                tournament_id = tournament_map[selected_name]
 
-                    with col2:
-                        st.space(size="small")
-                        if st.button("Save", key=f"save_{idx}"):
-                            cursor.execute(
-                                "UPDATE games SET winner=%s WHERE game_id=%s",
-                                (choice if choice else None, game_id)
-                            )
-                            conn.commit()
-                            st.success("Saved!")
-                            st.rerun()
+                # For each tier
+                for tier_number in range(1, 6):
+
+                    st.markdown(f"**Tier {tier_number} Winner**")
+
+                    # Players in this tier
+                    cursor.execute("""
+                        SELECT p.player_id, p.name
+                        FROM tiers t
+                        JOIN players p ON p.player_id = t.player_id
+                        WHERE t.tournament_id = %s
+                        AND t.tier_number = %s
+                    """, (tournament_id, tier_number))
+                    players = cursor.fetchall()
+
+                    if not players:
+                        st.info("No players assigned to this tier")
+                        continue
+
+                    player_options = {p["name"]: p["player_id"] for p in players}
+
+                    # Existing result
+                    cursor.execute("""
+                        SELECT winning_player_id
+                        FROM results
+                        WHERE tournament_id=%s AND tier_number=%s
+                    """, (tournament_id, tier_number))
+                    existing = cursor.fetchone()
+
+                    existing_name = None
+                    if existing:
+                        for name, pid in player_options.items():
+                            if pid == existing["winning_player_id"]:
+                                existing_name = name
+
+                    choice = st.selectbox(
+                        f"Winner (Tier {tier_number})",
+                        [""] + list(player_options.keys()),
+                        index=(list(player_options.keys()).index(existing_name) + 1)
+                        if existing_name else 0,
+                        key=f"tier_win_{tournament_id}_{tier_number}"
+                    )
+
+                    if st.button("Save", key=f"save_{tournament_id}_{tier_number}"):
+                        cursor.execute("""
+                            INSERT INTO results (tournament_id, tier_number, winning_player_id)
+                            VALUES (%s, %s, %s)
+                            ON CONFLICT (tournament_id, tier_number)
+                            DO UPDATE SET winning_player_id=EXCLUDED.winning_player_id
+                        """, (
+                            tournament_id,
+                            tier_number,
+                            player_options.get(choice)
+                        ))
+                        conn.commit()
+                        st.success("Saved")
+                        st.rerun()
+
 
 
 
@@ -378,211 +384,242 @@ if auth_status:
 
 
     if page == "Make Picks":
-            col1, space, col2 = st.columns([3,.5,1.5])
-            with col1:
-                st.title("Make Picks")
-            # st.sidebar.divider()
-            with col2:
-            # PICK'EM LOGIC
-                week = st.selectbox(
-                    "",
-                    [r for r in ROUND_ORDER if r in {g["week"] for g in GAMES}]
+        col1, space, col2 = st.columns([3, .5, 1.5])
+        with col1:
+            st.title("Make Picks")
+        with col2:
+            # Select tournament
+            cursor.execute("SELECT tournament_id, name, start_time FROM tournaments ORDER BY start_time")
+            tournaments = cursor.fetchall()
+            if not tournaments:
+                st.warning("No tournaments available")
+            else:
+                tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
+                selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
+                tournament_id = tournament_map[selected_name]
+
+        st.sidebar.divider()
+
+        # Current time (UTC)
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
+
+        # Get tournament start time to lock picks
+        cursor.execute("SELECT start_time FROM tournaments WHERE tournament_id=%s", (tournament_id,))
+        tournament_info = cursor.fetchone()
+        start_time = tournament_info["start_time"] if tournament_info else None
+        locked = start_time and now >= start_time
+
+        st.write("")
+
+        # For each tier (1–5)
+        for tier_number in range(1, 6):
+            st.subheader(f"Tier {tier_number}")
+
+            # Get players for this tier
+            cursor.execute("""
+                SELECT p.player_id, p.name
+                FROM tiers t
+                JOIN players p ON p.player_id = t.player_id
+                WHERE t.tournament_id=%s AND t.tier_number=%s
+            """, (tournament_id, tier_number))
+            players = cursor.fetchall()
+            if not players:
+                st.info("No players assigned to this tier")
+                continue
+
+            # Get existing pick for this user/tier
+            cursor.execute("""
+                SELECT player_id FROM picks
+                WHERE username=%s AND tournament_id=%s AND tier_number=%s
+            """, (username, tournament_id, tier_number))
+            existing = cursor.fetchone()
+            existing_pick = existing["player_id"] if existing else None
+
+            # Options
+            player_options = {p["name"]: p["player_id"] for p in players}
+
+            if not locked:
+                choice_name = None
+                # If existing pick exists, get name
+                for name, pid in player_options.items():
+                    if pid == existing_pick:
+                        choice_name = name
+
+                choice_name = st.selectbox(
+                    "Select Player",
+                    [""] + list(player_options.keys()),
+                    index=(list(player_options.keys()).index(choice_name)+1 if choice_name else 0),
+                    key=f"pick_{tournament_id}_tier{tier_number}_{safe_key(username)}"
                 )
 
-            st.sidebar.divider()
-
-            # Fix deprecated datetime
-            from datetime import timezone
-            now = datetime.now(timezone.utc)
-            week_games = [g for g in GAMES if g["week"] == week]
-
-            st.write('')
-
-            for game in week_games:
-                locked = now >= game["kickoff"]
-                matchup = f'{game["away"]} @ {game["home"]}'
-                st.subheader(matchup)
-                kickoff_str = game["kickoff"].strftime("%A %I:%M %p").lstrip("0")
-                st.caption(f"{kickoff_str} EST")
-
-                # Get existing pick - fix dictionary access
-                cursor.execute("SELECT pick FROM picks WHERE username=%s AND game_id=%s", (username, game["game_id"]))
-                existing = cursor.fetchone()
-                existing_pick = existing["pick"] if existing else None
-
-                if not locked:
-                    choice = st.radio(
-                        "Pick winner",
-                        [game["away"], game["home"]],
-                        index=(0 if existing_pick == game["away"] else 1 if existing_pick == game["home"] else 0),
-                        key=f"pick_{safe_key(game['game_id'])}_{safe_key(username)}"
-                    )
-                    
-                    if st.button("Save Pick", key=f"save_{safe_key(username)}_{safe_key(game['game_id'])}"):
-                        # Delete old pick first, then insert new one
-                        cursor.execute(
-                            "DELETE FROM picks WHERE username=%s AND game_id=%s", 
-                            (username, game["game_id"])
-                        )
-                        cursor.execute(
-                            "INSERT INTO picks (username, game_id, pick, timestamp) VALUES (%s, %s, %s, %s)",
-                            (username, game["game_id"], choice, now.isoformat())
-                        )
-                        conn.commit()
-                        st.success(f"Saved pick: {choice}")
-                        st.rerun()
-
+                if st.button("Save", key=f"save_{tournament_id}_tier{tier_number}_{safe_key(username)}"):
+                    # Delete old pick
+                    cursor.execute("""
+                        DELETE FROM picks
+                        WHERE username=%s AND tournament_id=%s AND tier_number=%s
+                    """, (username, tournament_id, tier_number))
+                    # Insert new pick
+                    cursor.execute("""
+                        INSERT INTO picks (username, tournament_id, tier_number, player_id, timestamp)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (username, tournament_id, tier_number, player_options.get(choice_name), now.isoformat()))
+                    conn.commit()
+                    st.success(f"Saved pick: {choice_name}")
+                    st.rerun()
+            else:
+                if existing_pick:
+                    # Display name for locked pick
+                    locked_name = next((name for name, pid in player_options.items() if pid == existing_pick), "Unknown")
+                    st.info(f"Your locked pick: **{locked_name}**")
                 else:
-                    if existing_pick:
-                        st.info(f"Your locked pick: **{existing_pick}**")
-                    else:
-                        st.warning("No pick submitted")
+                    st.warning("No pick submitted")
+
 
     elif page == "All Picks":
-                col1, space, col2 = st.columns([3,.5,1.5])
-                with col1:
-                    st.title("All Picks")
-                # st.sidebar.divider()
-                with col2:
-                # PICK'EM LOGIC
-                    week = st.selectbox(
-                        "",
-                        [r for r in ROUND_ORDER if r in {g["week"] for g in GAMES}]
-                    )
+        col1, space, col2 = st.columns([3, .5, 1.5])
+        with col1:
+            st.title("All Picks")
+        with col2:
+            # Select tournament
+            cursor.execute("SELECT tournament_id, name, start_time FROM tournaments ORDER BY start_time")
+            tournaments = cursor.fetchall()
+            if not tournaments:
+                st.warning("No tournaments available")
+            else:
+                tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
+                selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
+                tournament_id = tournament_map[selected_name]
 
-                st.sidebar.divider()
-                st.write('')
+        st.sidebar.divider()
+        st.write("")
 
-                week_games = [g for g in GAMES if g["week"] == week]
-                game_ids = [g["game_id"] for g in week_games]
+        # Get current time
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
 
-                if not game_ids:
-                    st.info("No games for this round.")
+        # Get tournament start time
+        cursor.execute("SELECT start_time FROM tournaments WHERE tournament_id=%s", (tournament_id,))
+        tournament_info = cursor.fetchone()
+        start_time = tournament_info["start_time"] if tournament_info else None
+        now = datetime.now(timezone.utc)
+        locked = start_time and now < start_time  # locked = True if tournament hasn't started
+
+        # 1️⃣ Get all users
+        cursor.execute("SELECT username, name FROM users")
+        users = cursor.fetchall()
+        usernames = [u["username"] for u in users]
+        name_map = {u["username"]: u["name"] for u in users}
+
+        # 2️⃣ Get picks for this tournament
+        cursor.execute("""
+            SELECT username, tier_number, player_id
+            FROM picks
+            WHERE tournament_id=%s
+        """, (tournament_id,))
+        rows = cursor.fetchall()
+
+        # 3️⃣ Build lookup: username -> tier_number -> player_id
+        pick_map = {u: {tier: None for tier in range(1, 6)} for u in usernames}
+        for row in rows:
+            pick_map[row["username"]][row["tier_number"]] = row["player_id"]
+
+        # 4️⃣ Build display table
+        table = []
+        # When building table
+        for user in users:
+            username = user["username"]
+            row_data = {"User": user["name"]}
+
+            for tier_number in range(1, 6):
+                pick_id = pick_map[username][tier_number]
+
+                if pick_id and not locked:
+                    # Show pick if tournament started
+                    cursor.execute("SELECT name FROM players WHERE player_id=%s", (pick_id,))
+                    player = cursor.fetchone()
+                    pick_name = player["name"] if player else "Unknown"
+                    row_data[f"Tier {tier_number}"] = pick_name
                 else:
-                    # 1️⃣ Get all users and their full names
-                    cursor.execute("SELECT username, name FROM users")
-                    users = cursor.fetchall()  # list of dicts
-                    usernames = [u["username"] for u in users]
-                    name_map = {u["username"]: u["name"] for u in users}
+                    # Tournament not started or pick not made
+                    row_data[f"Tier {tier_number}"] = "🔒"
 
-                    # 2️⃣ Get picks for these games
-                    placeholders = ",".join(["%s"] * len(game_ids))
-                    cursor.execute(
-                        f"""
-                        SELECT username, game_id, pick
-                        FROM picks
-                        WHERE game_id IN ({placeholders})
-                        """,
-                        tuple(game_ids)  # Pass as tuple, not list
-                    )
-                    rows = cursor.fetchall()
+            table.append(row_data)
 
-                    from datetime import datetime, timezone
+        # 5️⃣ Display as DataFrame
+        import pandas as pd
+        df = pd.DataFrame(table)
 
-                    # 3️⃣ Build lookup: username -> game_id -> pick
-                    pick_map = {u: {gid: None for gid in game_ids} for u in usernames}
-                    for row in rows:
-                        pick_map[row["username"]][row["game_id"]] = row["pick"]
+        column_config = {"User": st.column_config.TextColumn("User", width="small")}
+        for tier_number in range(1, 6):
+            column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="medium")
 
-                    # 4️⃣ Build display table with lock logic
-                    now = datetime.now(timezone.utc)
-                    table = []
-
-                    for user in users:
-                        username = user["username"]
-                        full_name = user["name"]
-                        row_data = {"User": full_name}  # display full name
-
-                        for g in week_games:
-                            locked = now >= g["kickoff"]
-                            pick = pick_map[username][g["game_id"]]
-
-                            if locked:
-                                # Game is locked → show pick’s team logo if available, otherwise dash
-                                row_data[g["game_id"]] = nfl_logo_url(pick, 500) if pick else "—"
-                            else:
-                                # Game not locked → always show 🔒 regardless of pick selection
-                                row_data[g["game_id"]] = "🔒"
-
-                        table.append(row_data)
-
-                    from datetime import timezone
-                    now = datetime.now(timezone.utc)
-                    
-                    import pandas as pd
-                    df = pd.DataFrame(table)
-
-                    column_config = {"User": st.column_config.TextColumn("User", width="small")}
-
-                    for g in week_games:
-                        locked = now >= g["kickoff"]
-                        if locked:
-                            column_config[g["game_id"]] = st.column_config.ImageColumn(g["game_id"], width=60)
-                        else:
-                            # Treat as text/emoji before lock
-                            column_config[g["game_id"]] = st.column_config.TextColumn(g["game_id"], width="small")
-                    
-                    st.dataframe(
-                        df,
-                        width="stretch",
-                        hide_index=True,
-                        column_config=column_config,
-                        row_height=60
-                    )
-
-
-
+        st.dataframe(
+            df,
+            width="stretch",
+            hide_index=True,
+            column_config=column_config,
+            row_height=50
+        )
 
     elif page == "Leaderboard":
         st.title("🏆 Leaderboard")
         st.sidebar.divider()
 
-        # 1️⃣ Get all users (username + full name)
+        # 1️⃣ Get all users
         cursor.execute("SELECT username, name FROM users ORDER BY name")
-        users = cursor.fetchall()  # list of dicts
-
-        # Mapping for easy lookup
+        users = cursor.fetchall()
         name_map = {user["username"]: user["name"] for user in users}
         usernames = [user["username"] for user in users]
 
-        # 2️⃣ Initialize points to 0 for all users
+        # 2️⃣ Initialize points
         user_points = {u: 0 for u in usernames}
 
-        # 3️⃣ Define round weights
-        ROUND_WEIGHTS = {
-            "Wild Card": 1,
-            "Divisional": 2,
-            "Conference": 3,
-            "Superbowl": 4
-        }
+        # 3️⃣ Optional: define tier weights (if you want tier 1 to be worth more)
+        TIER_WEIGHTS = {1: 5, 2: 4, 3: 3, 4: 2, 5: 1}  # example, 5 points for tier 1, etc.
 
         # 4️⃣ Get all picks
-        cursor.execute("SELECT username, game_id, pick FROM picks")
+        cursor.execute("""
+            SELECT username, tournament_id, tier_number, player_id
+            FROM picks
+        """)
         all_picks = cursor.fetchall()
+        # 5️⃣ Compare picks to results
+        for pick in all_picks:
+            username = pick["username"]
+            tournament_id = pick["tournament_id"]
+            tier_number = pick["tier_number"]
+            player_id = pick["player_id"]
 
-        for pick_row in all_picks:
-            username = pick_row["username"]
-            game_id = pick_row["game_id"]
-            pick = pick_row["pick"]
-            
-            cursor.execute("SELECT winner, week FROM games WHERE game_id=%s", (game_id,))  # Changed ? to %s
+            # Get tournament start time
+            cursor.execute("SELECT start_time FROM tournaments WHERE tournament_id=%s", (tournament_id,))
+            tournament_info = cursor.fetchone()
+            start_time = tournament_info["start_time"] if tournament_info else None
+            now = datetime.now(timezone.utc)
+
+            if start_time and now < start_time:
+                continue  # skip tournaments that haven't started yet
+
+            # Get the winning player for this tier
+            cursor.execute("""
+                SELECT winning_player_id
+                FROM results
+                WHERE tournament_id=%s AND tier_number=%s
+            """, (tournament_id, tier_number))
             result = cursor.fetchone()
-            if result:
-                winner = result["winner"]
-                week = result["week"]
-                if winner and pick == winner:
-                    user_points[username] += ROUND_WEIGHTS.get(week, 1)
 
-        # 5️⃣ Build DataFrame with full names
+            if result and result["winning_player_id"] == player_id:
+                user_points[username] += TIER_WEIGHTS.get(tier_number, 1)
+
+
+        # 6️⃣ Build DataFrame with full names
         import pandas as pd
-
         df = pd.DataFrame({
-            "User": [name_map.get(u, u) for u in usernames],
+            "Name": [name_map.get(u, u) for u in usernames],
             "Points": [user_points[u] for u in usernames]
         })
 
-        # 6️⃣ Sort by points descending
-        df.columns = ["Name", "Points"]
+        # 7️⃣ Sort descending
         df = df.sort_values("Points", ascending=False).reset_index(drop=True)
 
         column_config = {
@@ -590,7 +627,6 @@ if auth_status:
             "Points": st.column_config.NumberColumn("Points", width='content')
         }
 
-        # 7️⃣ Display in Streamlit with Points column right-aligned
         st.dataframe(
             df,
             width="stretch",
@@ -599,13 +635,10 @@ if auth_status:
         )
 
 
-
-
-
 # ----------------------------
 # LOGOUT
 # ----------------------------
-if auth_status:
+if auth_status is True:
     with st.sidebar:
         # st.success(f"Logged in as {name}")
         if st.button("Logout"):
