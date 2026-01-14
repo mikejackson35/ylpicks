@@ -586,7 +586,7 @@ if auth_status:
         df = df.sort_values("Points", ascending=False).reset_index(drop=True)
 
         column_config = {
-            "Name": st.column_config.TextColumn("Name", width='large'),
+            # "Name": st.column_config.TextColumn("Name", width='large'),
             "Points": st.column_config.NumberColumn("Points", width='content')
         }
 
