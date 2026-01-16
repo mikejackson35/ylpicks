@@ -426,9 +426,9 @@ if auth_status:
 
                 if pick_id and not locked:
                     # Show pick if tournament started
-                    cursor.execute("SELECT name FROM players WHERE player_id=%s", (pick_id,))
+                    cursor.execute("SELECT name_last FROM players WHERE player_id=%s", (pick_id,))
                     player = cursor.fetchone()
-                    pick_name = player["name"] if player else "Unknown"
+                    pick_name = player["name_last"] if player else "Unknown"
                     row_data[f"Tier {tier_number}"] = pick_name
                 else:
                     # Tournament not started or pick not made
