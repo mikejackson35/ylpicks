@@ -455,7 +455,7 @@ if auth_status:
         )
 
     elif page == "Leaderboard":
-        st.title("Leaderboard")
+        st.title("Overall")
         st.sidebar.divider()
 
         # 1️⃣ Get all users
@@ -529,6 +529,9 @@ if auth_status:
 
         # make leaderboard API call and display
         leaderboard= get_live_leaderboard()
+
+        st.write("")
+        st.title("This Week")
 
         st.dataframe(
             leaderboard
