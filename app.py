@@ -514,12 +514,12 @@ if auth_status:
         # 7️⃣ Sort descending
         df = df.sort_values("Earnings", ascending=False).reset_index(drop=True)
 
+        df["Earnings"] = df["Earnings"].map("${:,.0f}".format)
+
         column_config = {
             # "Name": st.column_config.TextColumn("Name", width='large'),
             "Earnings": st.column_config.NumberColumn("Earnings", width='content')
         }
-
-        df["Earnings"] = df["Earnings"].map("${:,.0f}".format)
 
         st.dataframe(
             df,
