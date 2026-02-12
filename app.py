@@ -1,4 +1,6 @@
 import streamlit as st
+from utils_leaderboard import get_live_leaderboard
+
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -523,6 +525,10 @@ if auth_status:
             hide_index=True,
             column_config=column_config
         )
+
+        df = get_live_leaderboard()
+
+        st.dataframe(df, use_container_width=True)
 
 
 # ----------------------------
