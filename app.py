@@ -588,7 +588,7 @@ if auth_status:
         )
 
         # Hide PlayerID column
-        styled_df = styled_df.hide_columns(["PlayerID"])
+        # styled_df = styled_df.hide_columns(["PlayerID"])
 
         # Show in Streamlit
         st.dataframe(
