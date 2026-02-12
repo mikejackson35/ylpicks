@@ -561,7 +561,7 @@ if auth_status:
         # color values in the Earnings column: green if >0, red if 0
 
         st.dataframe(
-            leaderboard
+            leaderboard.drop(columns=["PlayerID"])
             .style
             .applymap(
                 lambda x: "color: green" if x > 0 else "color: red",
