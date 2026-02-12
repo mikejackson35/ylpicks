@@ -509,14 +509,14 @@ if auth_status:
         df = pd.DataFrame({
             "Name": [name_map.get(u, u) for u in usernames],
             "Points": [user_points[u] for u in usernames]
-        })
+        }).rename(columns={"Points": "Earnings"})
 
         # 7️⃣ Sort descending
-        df = df.sort_values("Points", ascending=False).reset_index(drop=True)
+        df = df.sort_values("Earnings", ascending=False).reset_index(drop=True)
 
         column_config = {
             # "Name": st.column_config.TextColumn("Name", width='large'),
-            "Points": st.column_config.NumberColumn("Points", width='content')
+            "Earnings": st.column_config.NumberColumn("Earnings", width='content')
         }
 
         st.dataframe(
@@ -557,6 +557,3 @@ if auth_status is True:
             st.session_state["username"] = None
             st.session_state["name"] = None
             st.rerun()
-
-
-
