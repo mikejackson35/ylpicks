@@ -581,7 +581,7 @@ if auth_status:
         # Show in Streamlit
         st.dataframe(
             styled_df,
-            use_container_width=True,
+            width="stretch",
             height=500,
             hide_index=True
         )
