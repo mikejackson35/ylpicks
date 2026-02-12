@@ -530,7 +530,7 @@ if auth_status:
 
         df["Earnings"] = df["Earnings"].apply(lambda x: f"${x:,.0f}")
 
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, use_container_width=True, index=False)
 
 
 # ----------------------------
