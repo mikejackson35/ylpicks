@@ -519,6 +519,8 @@ if auth_status:
             "Earnings": st.column_config.NumberColumn("Earnings", width='content')
         }
 
+        df["Earnings"] = df["Earnings"].map("${:,.0f}".format)
+
         st.dataframe(
             df,
             width="stretch",
