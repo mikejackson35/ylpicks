@@ -540,7 +540,7 @@ if auth_status:
         st.dataframe(
             leaderboard
             .style
-            .format({"Earnings": "${:,.0f}"})
+            .format({"Earnings": "${:,.0f}"}),
             # .applymap(
             #     lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "color: red" if isinstance(x, str) and x.startswith("+") else "", 
             #     subset=["Score"]
