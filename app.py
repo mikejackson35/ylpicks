@@ -560,14 +560,39 @@ if auth_status:
 
         # color values in the Earnings column: green if >0, red if 0
 
+        # st.dataframe(
+        #     leaderboard.drop(columns=["PlayerID"])
+        #     .style
+        #     .hide(axis="index")
+        #     .applymap(
+        #         lambda x: "color: green" if x > 0 else "color: red",
+        #         subset=["Earnings"]
+        #     ).format({"Earnings": "${:,.0f}"}),
+        #     use_container_width=True,
+        #     height=500
+        # )
+
+        # df = your filtered leaderboard with only picked players
+        # Make sure PlayerID is still in df for filtering, but we'll hide it in display
+
+        # Format earnings as currency
+        leaderboard["Earnings"] = leaderboard["Earnings"].map("${:,.0f}".format)
+
+        # Reset index to remove index column in display
+        df_display = leaderboard.reset_index(drop=True)
+
+        # Apply style: green color for negative scores (under par)
+        styled_df = df_display.style.applymap(
+            lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
+            subset=["Score"]
+        )
+
+        # Hide PlayerID column
+        styled_df = styled_df.hide_columns(["PlayerID"])
+
+        # Show in Streamlit
         st.dataframe(
-            leaderboard.drop(columns=["PlayerID"])
-            .style
-            .hide(axis="index")
-            .applymap(
-                lambda x: "color: green" if x > 0 else "color: red",
-                subset=["Earnings"]
-            ).format({"Earnings": "${:,.0f}"}),
+            styled_df,
             use_container_width=True,
             height=500
         )
