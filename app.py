@@ -528,15 +528,10 @@ if auth_status:
 
         df = get_live_leaderboard()
 
-        df["Earnings"] = df["Earnings"].map("${:,.0f}".format)
+        df["Earnings"] = df["Earnings"].apply(lambda x: f"${x:,.0f}")
 
+        st.dataframe(df, use_container_width=True)
 
-        st.dataframe(df, use_container_width=True, index=False, column_config={
-                                "Player": st.column_config.TextColumn("Player", width="large"),
-                                "Pos": st.column_config.NumberColumn("Pos", width="content"),
-                                "Score": st.column_config.NumberColumn("Score", width="content"),
-                                "Earnings": st.column_config.TextColumn("Earnings", width="content")
-                            })
 
 # ----------------------------
 # LOGOUT
