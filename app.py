@@ -528,53 +528,24 @@ if auth_status:
             column_config=column_config
         )
 
-        # df = get_live_leaderboard()
 
-        # df["Earnings"] = df["Earnings"].apply(lambda x: f"${x:,.0f}")
+        # make leaderboard API call and display
+        leaderboard= get_live_leaderboard()
 
-        # st.dataframe(df, use_container_width=True, index=False)
-
-
-        leaderboard2 = get_live_leaderboard()
-
-        # Format earnings
-        leaderboard2["Earnings"] = leaderboard2["Earnings"].map("${:,.0f}".format)
-
-        gb = GridOptionsBuilder.from_dataframe(leaderboard2)
-
-        gb.configure_default_column(
-            resizable=True,
-            sortable=True,
-            filter=True
+        st.dataframe(
+            leaderboard
+            .style
+            .format({"Earnings": "${:,.0f}"})
+            .applymap(
+                lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
+                subset=["Score"]
+            ),
+            use_container_width=True,
+            height=500
         )
 
-        gb.configure_column("Pos", width=80, pinned="left")
-        gb.configure_column("Player", width=200, pinned="left")
-        gb.configure_column("Score", type=["numericColumn"])
-        gb.configure_column("Earnings", type=["numericColumn"])
 
-        # Auto sort by position
-        gb.configure_grid_options(
-            domLayout="normal",
-            onGridReady="""
-                function(params) {
-                    params.api.sizeColumnsToFit();
-                    params.api.setSortModel([{colId: 'Pos', sort: 'asc'}]);
-                }
-            """
-        )
 
-        grid_options = gb.build()
-
-        AgGrid(
-            leaderboard2,
-            gridOptions=grid_options,
-            height=500,
-            theme="alpine",
-            fit_columns_on_grid_load=True,
-            allow_unsafe_jscode=True,
-            enable_enterprise_modules=False
-        )
 
 
 # ----------------------------
