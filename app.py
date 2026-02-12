@@ -537,14 +537,15 @@ if auth_status:
             st.error(f"Leaderboard will show when tournament starts")
             st.stop()
 
+        # color values in the Earnings column: green if >0, red if 0
+
         st.dataframe(
             leaderboard
             .style
-            .format({"Earnings": "${:,.0f}"}),
-            # .applymap(
-            #     lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "color: red" if isinstance(x, str) and x.startswith("+") else "", 
-            #     subset=["Score"]
-            # ),
+            .applymap(
+                lambda x: "color: green" if x > 0 else "color: red",
+                subset=["Earnings"]
+            ).format({"Earnings": "${:,.0f}"}),
             use_container_width=True,
             height=500
         )
