@@ -1,8 +1,6 @@
 import streamlit as st
 from utils_leaderboard import get_live_leaderboard
 
-from st_aggrid import AgGrid, GridOptionsBuilder
-
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
