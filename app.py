@@ -528,7 +528,11 @@ if auth_status:
 
 
         # make leaderboard API call and display
-        leaderboard= get_live_leaderboard()
+        try:
+            leaderboard= get_live_leaderboard()
+        except Exception as e:
+            st.error(f"Leaderboard will show when tournament starts. (Error: {e})")
+            st.stop()
 
         st.write("")
         st.title("This Week")
