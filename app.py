@@ -555,7 +555,7 @@ if auth_status:
 
         picked_ids = get_picked_players(conn)
 
-        df = df[df["PlayerID"].isin(picked_ids)]
+        leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
 
 
         # color values in the Earnings column: green if >0, red if 0

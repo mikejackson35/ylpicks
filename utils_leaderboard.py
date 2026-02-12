@@ -75,7 +75,6 @@ def get_live_leaderboard(org_id="1", tourn_id="003", year="2026"):
         lb_df
         .merge(earnings_df, on="PlayerID", how="left")
         .fillna({"Earnings": 0})
-        # .drop(columns="PlayerID")
         .reset_index(drop=True)
     )
 
