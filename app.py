@@ -560,7 +560,7 @@ if auth_status:
         leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
 
         # Format earnings as currency
-        leaderboard["Earnings"] = leaderboard["Earnings"].map("${:,.0f}".format)
+        # leaderboard["Earnings"] = leaderboard["Earnings"].map("${:,.0f}".format)
 
         leaderboard.drop(columns=["PlayerID"], inplace=True)
 
@@ -575,7 +575,7 @@ if auth_status:
                 subset=["Score"]
             )
             # Center align Score and Earnings columns
-            .set_properties(**{'text-align': 'center'}, subset=["Score", "Earnings"])
+            .set_properties(**{'text-align': 'center'}, subset=["Score"])#, "Earnings"])
         )
 
         # Show in Streamlit
