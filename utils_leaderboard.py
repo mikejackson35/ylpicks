@@ -1,6 +1,7 @@
 import os
 import requests
 import pandas as pd
+import streamlit as st
 
 RAPIDAPI_HOST = "live-golf-data.p.rapidapi.com"
 BASE_URL = "https://live-golf-data.p.rapidapi.com"
@@ -35,6 +36,7 @@ def earnings_to_df(rows):
     ])
 
 
+
 def get_live_leaderboard(org_id="1", tourn_id="003", year="2026"):
     params = {
         "orgId": org_id,
@@ -48,9 +50,9 @@ def get_live_leaderboard(org_id="1", tourn_id="003", year="2026"):
         params=params
     )
 
-    print("STATUS:", leaderboard_resp.status_code)
-    print("JSON:", leaderboard_resp.json())
+    st.write("STATUS:", leaderboard_resp.status_code)
+    st.write("JSON:", leaderboard_resp.json())
 
-    # STOP HERE FOR DEBUGGING
-    raise SystemExit("Debug stop")
+    st.stop()
+
 
