@@ -529,6 +529,22 @@ if auth_status:
         st.write("")
         st.title("This Week")
 
+        # make filter for only picked players in this tournament
+        import pandas as pd
+
+
+        def get_picked_players(conn):
+            query = """
+                SELECT DISTINCT player_id
+                FROM picks
+            """
+
+            df = pd.read_sql(query, conn)
+
+            # Convert to string to match RapidAPI IDs
+            return df["player_id"].astype(str).tolist()
+
+
 
         # make leaderboard API call and display
         try:
@@ -536,6 +552,11 @@ if auth_status:
         except Exception as e:
             st.error(f"Leaderboard will show when tournament starts")
             st.stop()
+
+        picked_ids = get_picked_players(conn)
+
+        df = df[df["PlayerID"].isin(picked_ids)]
+
 
         # color values in the Earnings column: green if >0, red if 0
 
