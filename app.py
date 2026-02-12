@@ -528,6 +528,9 @@ if auth_status:
 
         df = get_live_leaderboard()
 
+        df["Earnings"] = df["Earnings"].map("${:,.0f}".format)
+
+
         st.dataframe(df, use_container_width=True)
 
 
