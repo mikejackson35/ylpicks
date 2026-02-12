@@ -53,6 +53,6 @@ def get_live_leaderboard(org_id="1", tourn_id="003", year="2026"):
     st.write("STATUS:", leaderboard_resp.status_code)
     st.write("JSON:", leaderboard_resp.json())
 
-    st.stop()
+    # st.stop()
 
 
