@@ -596,7 +596,8 @@ if auth_status:
         st.dataframe(
             styled_df,
             use_container_width=True,
-            height=500
+            height=500,
+            hide_index=True
         )
 
 
