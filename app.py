@@ -552,7 +552,7 @@ if auth_status:
         try:
             leaderboard= get_live_leaderboard()
         except Exception as e:
-            st.error(f"Leaderboard will show when tournament starts... maybe")
+            st.error(f"Leaderboard will show when tournament starts... maybe ...  {e}")
             st.stop()
 
         picked_ids = get_picked_players(conn)
