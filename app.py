@@ -541,10 +541,10 @@ if auth_status:
             leaderboard
             .style
             .format({"Earnings": "${:,.0f}"})
-            .applymap(
-                lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "color: red" if isinstance(x, str) and x.startswith("+") else "", 
-                subset=["Score"]
-            ),
+            # .applymap(
+            #     lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "color: red" if isinstance(x, str) and x.startswith("+") else "", 
+            #     subset=["Score"]
+            # ),
             use_container_width=True,
             height=500
         )
