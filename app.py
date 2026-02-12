@@ -563,6 +563,7 @@ if auth_status:
         st.dataframe(
             leaderboard.drop(columns=["PlayerID"])
             .style
+            .hide(axis="index")
             .applymap(
                 lambda x: "color: green" if x > 0 else "color: red",
                 subset=["Earnings"]
