@@ -526,16 +526,16 @@ if auth_status:
             column_config=column_config
         )
 
+        st.write("")
+        st.title("This Week")
+
 
         # make leaderboard API call and display
         try:
             leaderboard= get_live_leaderboard()
         except Exception as e:
-            st.error(f"Leaderboard will show when tournament starts. (Error: {e})")
+            st.error(f"Leaderboard will show when tournament starts")
             st.stop()
-
-        st.write("")
-        st.title("This Week")
 
         st.dataframe(
             leaderboard
