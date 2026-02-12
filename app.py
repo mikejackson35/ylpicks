@@ -531,8 +531,12 @@ if auth_status:
         df["Earnings"] = df["Earnings"].map("${:,.0f}".format)
 
 
-        st.dataframe(df, use_container_width=True)
-
+        st.dataframe(df, use_container_width=True, index=False, column_config={
+                                "Player": st.column_config.TextColumn("Player", width="large"),
+                                "Pos": st.column_config.NumberColumn("Pos", width="content"),
+                                "Score": st.column_config.NumberColumn("Score", width="content"),
+                                "Earnings": st.column_config.TextColumn("Earnings", width="content")
+                            })
 
 # ----------------------------
 # LOGOUT
