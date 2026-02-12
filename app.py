@@ -542,7 +542,7 @@ if auth_status:
             .style
             .format({"Earnings": "${:,.0f}"})
             .applymap(
-                lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
+                lambda x: "color: red" if isinstance(x, str) and x.startswith("-") else "color: green" if isinstance(x, str) and x.startswith("+") else "", 
                 subset=["Score"]
             ),
             use_container_width=True,
