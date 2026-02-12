@@ -578,6 +578,8 @@ if auth_status:
         # Format earnings as currency
         leaderboard["Earnings"] = leaderboard["Earnings"].map("${:,.0f}".format)
 
+        leaderboard.drop(columns=["PlayerID"], inplace=True)
+
         # Reset index to remove index column in display
         df_display = leaderboard.reset_index(drop=True)
 
