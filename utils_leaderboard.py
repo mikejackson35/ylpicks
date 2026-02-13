@@ -35,17 +35,16 @@ def earnings_to_df(rows):
     ])
 
 
-def get_live_leaderboard(org_id="1", tourn_id="005", year="2026"):
+def get_live_leaderboard(api_key, org_id="1", tourn_id="005", year="2026"):
     params = {
         "orgId": org_id,
         "tournId": tourn_id,
         "year": year
     }
 
-    # ---- leaderboard ----
     leaderboard_resp = requests.get(
         f"{BASE_URL}/leaderboard",
-        headers=_headers(),
+        headers=_headers(api_key),  # ✅ Pass the key here
         params=params
     )
 
@@ -56,28 +55,7 @@ def get_live_leaderboard(org_id="1", tourn_id="005", year="2026"):
 
     lb_df = leaderboard_to_df(data["leaderboardRows"])
 
-    # ---- earnings ----
-    # earnings_resp = requests.get(
-    #     f"{BASE_URL}/earnings",
-    #     headers=_headers(),
-    #     params=params
-    # )
-
-    # edata = earnings_resp.json()
-
-    # if "leaderboard" not in edata:
-    #     raise RuntimeError(f"Earnings API error: {edata}")
-
-    # earnings_df = earnings_to_df(edata["leaderboard"])
-
-    # ---- merge ----
-    final = (
-        lb_df
-        # .merge(earnings_df, on="PlayerID", how="left")
-        # .fillna({"Earnings": 0})
-        .reset_index(drop=True)
-    )
-
+    final = lb_df.reset_index(drop=True)
     return final
 
 

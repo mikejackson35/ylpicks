@@ -39,7 +39,6 @@ cursor = conn.cursor()
 # ----------------------------
 ADMINS = {"mj"}  # set of usernames allowed to see admin tools
 
-
 # ----------------------------
 # HELPER FUNCTIONS
 # ----------------------------
@@ -477,9 +476,9 @@ if auth_status:
 
         # make leaderboard API call and display
         try:
-            leaderboard= get_live_leaderboard()
+            leaderboard = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])  # ✅ Pass key from secrets
         except Exception as e:
-            st.error(f"Leaderboard will show when tournament starts... maybe ...  {e}")
+            st.error(f"Leaderboard will show when tournament starts... maybe ... {e}")
             st.stop()
 
         picked_ids = get_picked_players(conn)
