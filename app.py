@@ -544,7 +544,7 @@ if auth_status:
 
             st.dataframe(
                 styled_picks_df,
-                width="stretch",
+                width="content",
                 height='content',
                 hide_index=True,
                 column_config=column_config
@@ -594,7 +594,7 @@ if auth_status:
             # Show in Streamlit
             st.dataframe(
                 styled_leaderboard_df,
-                width="stretch",
+                width="content",
                 height=500,
                 hide_index=True
             )
