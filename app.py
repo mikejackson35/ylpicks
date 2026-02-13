@@ -574,7 +574,7 @@ if auth_status:
 
             st.dataframe(
                 styled_picks_df,
-                width="content",
+                width="stretch",
                 height='content',
                 hide_index=True,
                 column_config=column_config
