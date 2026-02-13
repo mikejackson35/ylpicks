@@ -490,7 +490,7 @@ if auth_status:
                 best_score = min(tier_scores.values())
                 
                 # Return styles
-                return ['background-color: #90EE90' if (s[user_name] != "🔒" and 
+                return ['background-color: #c9f7d3' if (s[user_name] != "🔒" and 
                         s[user_name] in name_to_id and 
                         name_to_id[s[user_name]] in score_lookup and 
                         score_lookup[name_to_id[s[user_name]]] == best_score)
