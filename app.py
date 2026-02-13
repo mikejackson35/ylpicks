@@ -414,7 +414,6 @@ if auth_status:
 
         # 4️⃣ Build display table
         table = []
-        # When building table
         for user in users:
             username = user["username"]
             row_data = {"User": user["name"]}
@@ -434,16 +433,82 @@ if auth_status:
 
             table.append(row_data)
 
-        # 5️⃣ Display as DataFrame
+        # 5️⃣ Display as DataFrame WITH HIGHLIGHTING
         import pandas as pd
         df = pd.DataFrame(table)
+
+        # Get leaderboard to highlight leaders in each tier
+        try:
+            leaderboard_for_highlight = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
+            
+            # Create score lookup: player_id -> numeric_score
+            score_lookup = {}
+            for _, lb_row in leaderboard_for_highlight.iterrows():
+                player_id = str(lb_row["PlayerID"])
+                score = lb_row["Score"]
+                # Convert score to numeric (lower is better in golf)
+                if score == "E":
+                    numeric_score = 0
+                elif isinstance(score, str):
+                    try:
+                        numeric_score = int(score.replace("+", ""))
+                    except:
+                        numeric_score = 999
+                else:
+                    numeric_score = 999
+                score_lookup[player_id] = numeric_score
+            
+            # Build a reverse lookup: player_name -> player_id
+            name_to_id = {}
+            for username in usernames:
+                for tier_num in range(1, 6):
+                    pick_id = pick_map[username][tier_num]
+                    if pick_id:
+                        cursor.execute("SELECT name_last FROM players WHERE player_id=%s", (pick_id,))
+                        player = cursor.fetchone()
+                        if player:
+                            name_to_id[player["name_last"]] = str(pick_id)
+            
+            # Style function to highlight tier leaders
+            def highlight_tier_leaders(s):
+                # s is a Series representing one row (one tier after transpose)
+                tier_scores = {}
+                
+                for user_name in s.index:
+                    player_name = s[user_name]
+                    if player_name == "🔒" or player_name not in name_to_id:
+                        continue
+                    
+                    player_id = name_to_id[player_name]
+                    if player_id in score_lookup:
+                        tier_scores[user_name] = score_lookup[player_id]
+                
+                # Find best (lowest) score
+                if not tier_scores:
+                    return [''] * len(s)
+                
+                best_score = min(tier_scores.values())
+                
+                # Return styles
+                return ['background-color: #90EE90' if (s[user_name] != "🔒" and 
+                        s[user_name] in name_to_id and 
+                        name_to_id[s[user_name]] in score_lookup and 
+                        score_lookup[name_to_id[s[user_name]]] == best_score)
+                        else '' for user_name in s.index]
+            
+            # Apply styling
+            styled_picks_df = df.set_index('User').T.style.apply(highlight_tier_leaders, axis=1)
+            
+        except Exception as e:
+            # If can't get leaderboard, just show without highlighting
+            styled_picks_df = df.set_index('User').T
 
         column_config = {"User": st.column_config.TextColumn("User", width="content")}
         for tier_number in range(1, 6):
             column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="content")
 
         st.dataframe(
-            df.set_index('User').T,
+            styled_picks_df,
             width="stretch",
             hide_index=True,
             column_config=column_config,
@@ -451,12 +516,8 @@ if auth_status:
         )
 
         st.write("")
-        # st.title("Leaderboard")
 
         # make filter for only picked players in this tournament
-        import pandas as pd
-
-
         def get_picked_players(conn, tournament_id):
             cursor = conn.cursor()
             cursor.execute("""
@@ -470,12 +531,7 @@ if auth_status:
             # Extract player_id from each row dict
             player_ids = [str(row["player_id"]) for row in rows]
             
-            # st.write(f"DEBUG get_picked_players: Found {len(player_ids)} players")
-            # st.write(f"DEBUG get_picked_players: Sample IDs: {player_ids[:5]}")
-            
             return player_ids
-
-
 
         # make leaderboard API call and display
         try:
@@ -484,7 +540,7 @@ if auth_status:
             st.error(f"Leaderboard will show when tournament starts... maybe ... {e}")
             st.stop()
 
-        picked_ids = get_picked_players(conn, tournament_id)  # ✅ Pass tournament_id
+        picked_ids = get_picked_players(conn, tournament_id)
 
         leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
 
@@ -500,8 +556,7 @@ if auth_status:
                 lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
                 subset=["Score"]
             )
-            # Center align Score and Earnings columns
-            .set_properties(**{'text-align': 'center'}, subset=["Score"])#, "Earnings"])
+            .set_properties(**{'text-align': 'center'}, subset=["Score"])
         )
 
         # Show in Streamlit
