@@ -536,7 +536,8 @@ if auth_status:
             for user in users:
                 user_name = user["name"]
                 score = user_scores.get(user_name, "")
-                header_text = f"{user_name} ({score})" if score else user_name
+                nl = '\n'
+                header_text = f"{user_name} {nl} ({score})" if score else user_name
                 column_config[user_name] = st.column_config.TextColumn(header_text, width="content")
             
             for tier_number in range(1, 6):
@@ -544,7 +545,7 @@ if auth_status:
 
             st.dataframe(
                 styled_picks_df,
-                width="content",
+                width="stretch",
                 height='content',
                 hide_index=True,
                 column_config=column_config
@@ -594,7 +595,7 @@ if auth_status:
             # Show in Streamlit
             st.dataframe(
                 styled_leaderboard_df,
-                width="content",
+                width="stretch",
                 height=500,
                 hide_index=True
             )
