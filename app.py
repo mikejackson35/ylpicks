@@ -497,14 +497,16 @@ if auth_status:
                         else '' for user_name in s.index]
             
             # Apply styling
-            styled_picks_df = (df.set_index('User').T.style
+            transposed_df = df.set_index('User').T
+            styled_picks_df = (transposed_df.style
                             .apply(highlight_tier_leaders, axis=1)
-                            .set_properties(**{'text-align': 'center'}))  # ✅ Add this line
-        
+                            .set_properties(**{'text-align': 'center'}))
+            
         except Exception as e:
             # If can't get leaderboard, just show without highlighting
-            styled_picks_df = (df.set_index('User').T.style
-                            .set_properties(**{'text-align': 'center'}))  # ✅ Add here too
+            transposed_df = df.set_index('User').T
+            styled_picks_df = (transposed_df.style
+                            .set_properties(**{'text-align': 'center'}))
 
         column_config = {"User": st.column_config.TextColumn("User", width="content")}
         for tier_number in range(1, 6):
