@@ -626,7 +626,7 @@ if auth_status:
             st.dataframe(
                 styled_leaderboard_df,
                 width="stretch",
-                height=500,
+                height=700,
                 hide_index=True
             )
 
