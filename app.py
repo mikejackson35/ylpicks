@@ -466,8 +466,16 @@ if auth_status:
             
             df = pd.read_sql(query, conn, params=(tournament_id,))
             
-            # Convert to string to match RapidAPI IDs
-            return df["player_id"].astype(str).tolist()
+            # Debug: See what we actually got
+            print(f"DataFrame shape: {df.shape}")
+            print(f"DataFrame columns: {df.columns.tolist()}")
+            print(f"First few rows:\n{df.head()}")
+            
+            # Convert to list of strings
+            if df.empty:
+                return []
+            
+            return [str(pid) for pid in df["player_id"].values]  # ✅ Use .values
 
 
 
@@ -487,9 +495,6 @@ if auth_status:
         leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
 
         st.write(f"DEBUG: After filtering: {len(leaderboard)} players")  # This will show 0 if IDs don't match
-
-        st.write("Sample picked IDs:", picked_ids[:5])
-        st.write("Sample leaderboard IDs:", leaderboard["PlayerID"].head().tolist())
 
         st.write("Sample picked IDs:", picked_ids[:10])  # Show more
         st.write("Sample leaderboard IDs:", leaderboard["PlayerID"].head(20).tolist())  # Show more
