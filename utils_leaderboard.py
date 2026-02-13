@@ -1,4 +1,4 @@
-import os
+import streamlit as st  # ✅ Add this import
 import requests
 import pandas as pd
 
@@ -8,7 +8,7 @@ BASE_URL = "https://live-golf-data.p.rapidapi.com"
 
 def _headers():
     return {
-        "x-rapidapi-key": os.getenv("RAPIDAPI_KEY"),
+        "x-rapidapi-key": st.secrets["RAPIDAPI_KEY"],  # ✅ Changed this line
         "x-rapidapi-host": RAPIDAPI_HOST
     }
 

@@ -587,66 +587,6 @@ if auth_status:
             column_config=column_config
         )
 
-        # st.write("")
-        # st.title("This Week")
-
-        # # make filter for only picked players in this tournament
-        # import pandas as pd
-
-
-        # def get_picked_players(conn):
-        #     query = """
-        #         SELECT DISTINCT player_id
-        #         FROM picks
-        #     """
-
-        #     df = pd.read_sql(query, conn)
-
-        #     # Convert to string to match RapidAPI IDs
-        #     return df["player_id"].astype(str).tolist()
-
-
-
-        # # make leaderboard API call and display
-        # try:
-        #     leaderboard= get_live_leaderboard()
-        # except Exception as e:
-        #     st.error(f"Leaderboard will show when tournament starts... maybe ...  {e}")
-        #     st.stop()
-
-        # picked_ids = get_picked_players(conn)
-
-        # leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
-
-        # # Format earnings as currency
-        # # leaderboard["Earnings"] = leaderboard["Earnings"].map("${:,.0f}".format)
-
-        # leaderboard.drop(columns=["PlayerID"], inplace=True)
-
-        # # Reset index to remove index column in display
-        # df_display = leaderboard.reset_index(drop=True)
-
-        # # Apply style: green color for negative scores (under par)
-        # styled_df = (
-        #     df_display.style
-        #     .applymap(
-        #         lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
-        #         subset=["Score"]
-        #     )
-        #     # Center align Score and Earnings columns
-        #     .set_properties(**{'text-align': 'center'}, subset=["Score"])#, "Earnings"])
-        # )
-
-        # # Show in Streamlit
-        # st.dataframe(
-        #     styled_df,
-        #     width="stretch",
-        #     height=500,
-        #     hide_index=True
-        # )
-
-
-
 
 
 # ----------------------------
