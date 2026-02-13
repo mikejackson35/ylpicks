@@ -472,9 +472,9 @@ if auth_status:
 
         # make leaderboard API call and display
         try:
-            leaderboard= get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
+            leaderboard = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
         except Exception as e:
-            st.error(f"Leaderboard will show when tournament starts... maybe ...  {e}")
+            st.error(f"Leaderboard will show when tournament starts... maybe ... {e}")
             st.stop()
 
         picked_ids = get_picked_players(conn)

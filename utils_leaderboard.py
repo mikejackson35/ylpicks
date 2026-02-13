@@ -1,4 +1,3 @@
-import streamlit as st  # ✅ Add this import
 import requests
 import pandas as pd
 
@@ -6,9 +5,9 @@ RAPIDAPI_HOST = "live-golf-data.p.rapidapi.com"
 BASE_URL = "https://live-golf-data.p.rapidapi.com"
 
 
-def _headers():
+def _headers(api_key):
     return {
-        "x-rapidapi-key": st.secrets["RAPIDAPI_KEY"],  # ✅ Changed this line
+        "x-rapidapi-key": api_key,
         "x-rapidapi-host": RAPIDAPI_HOST
     }
 
@@ -44,7 +43,7 @@ def get_live_leaderboard(api_key, org_id="1", tourn_id="005", year="2026"):
 
     leaderboard_resp = requests.get(
         f"{BASE_URL}/leaderboard",
-        headers=_headers(),  # ✅ Pass the key here
+        headers=_headers(api_key),
         params=params
     )
 
