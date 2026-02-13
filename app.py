@@ -517,9 +517,95 @@ if auth_status:
             width="stretch",
             height='content',
             hide_index=True,
-            column_config=column_config,
-            # row_height=50
+            column_config=column_config
         )
+######
+    # 5️⃣ Display as Markdown Table with bolded leaders
+        import pandas as pd
+        df = pd.DataFrame(table)
+
+        # Get leaderboard to find leaders in each tier
+        try:
+            leaderboard_for_highlight = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
+            
+            # Create score lookup: player_id -> numeric_score
+            score_lookup = {}
+            for _, lb_row in leaderboard_for_highlight.iterrows():
+                player_id = str(lb_row["PlayerID"])
+                score = lb_row["Score"]
+                if score == "E":
+                    numeric_score = 0
+                elif isinstance(score, str):
+                    try:
+                        numeric_score = int(score.replace("+", ""))
+                    except:
+                        numeric_score = 999
+                else:
+                    numeric_score = 999
+                score_lookup[player_id] = numeric_score
+            
+            # Build a reverse lookup: player_name -> player_id
+            name_to_id = {}
+            for username in usernames:
+                for tier_num in range(1, 6):
+                    pick_id = pick_map[username][tier_num]
+                    if pick_id:
+                        cursor.execute("SELECT name_last FROM players WHERE player_id=%s", (pick_id,))
+                        player = cursor.fetchone()
+                        if player:
+                            name_to_id[player["name_last"]] = str(pick_id)
+            
+            # Find leaders for each tier
+            tier_leaders = {}
+            df_transposed = df.set_index('User').T
+            
+            for tier_idx, tier_row in df_transposed.iterrows():
+                tier_scores = {}
+                for col in df_transposed.columns:
+                    player_name = df_transposed.loc[tier_idx, col]
+                    if player_name != "🔒" and player_name in name_to_id:
+                        player_id = name_to_id[player_name]
+                        if player_id in score_lookup:
+                            tier_scores[col] = score_lookup[player_id]
+                
+                if tier_scores:
+                    best_score = min(tier_scores.values())
+                    tier_leaders[tier_idx] = [user for user, score in tier_scores.items() if score == best_score]
+                else:
+                    tier_leaders[tier_idx] = []
+            
+        except Exception as e:
+            tier_leaders = {}
+            df_transposed = df.set_index('User').T
+
+        # Build markdown table
+        user_names = [user["name"] for user in users]
+        
+        # Header row
+        markdown = "| **Tier** | " + " | ".join([f"**{name}**" for name in user_names]) + " |\n"
+        markdown += "|" + "---|" * (len(user_names) + 1) + "\n"
+        
+        # Data rows
+        for tier_number in range(1, 6):
+            tier_name = f"Tier {tier_number}"
+            row = f"| **{tier_name}** |"
+            
+            for user_name in user_names:
+                player_name = df_transposed.loc[tier_name, user_name]
+                
+                # Bold if leader in this tier
+                if tier_name in tier_leaders and user_name in tier_leaders[tier_name]:
+                    cell_content = f" **{player_name}** "
+                else:
+                    cell_content = f" {player_name} "
+                
+                row += cell_content + "|"
+            
+            markdown += row + "\n"
+        
+        # Display the markdown table
+        st.markdown(markdown, unsafe_allow_html=True)
+#######
 
         st.write("")
 
