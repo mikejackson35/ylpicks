@@ -366,298 +366,238 @@ if auth_status:
                 else:
                     st.warning("No pick submitted")
 
-
     elif page == "This Week":
 
-        # Select tournament
-        cursor.execute("SELECT tournament_id, name, start_time FROM tournaments ORDER BY start_time")
-        tournaments = cursor.fetchall()
-        if not tournaments:
-            st.warning("No tournaments available")
-        else:
-            tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
-            selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
-            tournament_id = tournament_map[selected_name]
+            # Select tournament
+            cursor.execute("SELECT tournament_id, name, start_time FROM tournaments ORDER BY start_time")
+            tournaments = cursor.fetchall()
+            if not tournaments:
+                st.warning("No tournaments available")
+            else:
+                tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
+                selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
+                tournament_id = tournament_map[selected_name]
 
-        st.sidebar.divider()
-        st.write("")
+            st.sidebar.divider()
+            st.write("")
 
-        # Get current time
-        from datetime import datetime, timezone
-        now = datetime.now(timezone.utc)
+            # Get current time
+            from datetime import datetime, timezone
+            now = datetime.now(timezone.utc)
 
-        # Get tournament start time
-        cursor.execute("SELECT start_time FROM tournaments WHERE tournament_id=%s", (tournament_id,))
-        tournament_info = cursor.fetchone()
-        start_time = tournament_info["start_time"] if tournament_info else None
-        now = datetime.now(timezone.utc)
-        locked = start_time and now < start_time  # locked = True if tournament hasn't started
+            # Get tournament start time
+            cursor.execute("SELECT start_time FROM tournaments WHERE tournament_id=%s", (tournament_id,))
+            tournament_info = cursor.fetchone()
+            start_time = tournament_info["start_time"] if tournament_info else None
+            now = datetime.now(timezone.utc)
+            locked = start_time and now < start_time  # locked = True if tournament hasn't started
 
-        # 1️⃣ Get all users
-        cursor.execute("SELECT username, name FROM users")
-        users = cursor.fetchall()
-        usernames = [u["username"] for u in users]
-        name_map = {u["username"]: u["name"] for u in users}
+            # 1️⃣ Get all users
+            cursor.execute("SELECT username, name FROM users")
+            users = cursor.fetchall()
+            usernames = [u["username"] for u in users]
+            name_map = {u["username"]: u["name"] for u in users}
 
-        # 2️⃣ Get picks for this tournament
-        cursor.execute("""
-            SELECT username, tier_number, player_id
-            FROM picks
-            WHERE tournament_id=%s
-        """, (tournament_id,))
-        rows = cursor.fetchall()
+            # 2️⃣ Get picks for this tournament
+            cursor.execute("""
+                SELECT username, tier_number, player_id
+                FROM picks
+                WHERE tournament_id=%s
+            """, (tournament_id,))
+            rows = cursor.fetchall()
 
-        # 3️⃣ Build lookup: username -> tier_number -> player_id
-        pick_map = {u: {tier: None for tier in range(1, 6)} for u in usernames}
-        for row in rows:
-            pick_map[row["username"]][row["tier_number"]] = row["player_id"]
+            # 3️⃣ Build lookup: username -> tier_number -> player_id
+            pick_map = {u: {tier: None for tier in range(1, 6)} for u in usernames}
+            for row in rows:
+                pick_map[row["username"]][row["tier_number"]] = row["player_id"]
 
-        # 4️⃣ Build display table
-        table = []
-        for user in users:
-            username = user["username"]
-            row_data = {"User": user["name"]}
+            # 4️⃣ Build display table
+            table = []
+            for user in users:
+                username = user["username"]
+                row_data = {"User": user["name"]}
 
-            for tier_number in range(1, 6):
-                pick_id = pick_map[username][tier_number]
+                for tier_number in range(1, 6):
+                    pick_id = pick_map[username][tier_number]
 
-                if pick_id and not locked:
-                    # Show pick if tournament started
-                    cursor.execute("SELECT name_last FROM players WHERE player_id=%s", (pick_id,))
-                    player = cursor.fetchone()
-                    pick_name = player["name_last"] if player else "Unknown"
-                    row_data[f"Tier {tier_number}"] = pick_name
-                else:
-                    # Tournament not started or pick not made
-                    row_data[f"Tier {tier_number}"] = "🔒"
-
-            table.append(row_data)
-
-        # 5️⃣ Display as DataFrame WITH HIGHLIGHTING
-        import pandas as pd
-        df = pd.DataFrame(table)
-
-        # Get leaderboard to highlight leaders in each tier
-        try:
-            leaderboard_for_highlight = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
-            
-            # Create score lookup: player_id -> numeric_score
-            score_lookup = {}
-            for _, lb_row in leaderboard_for_highlight.iterrows():
-                player_id = str(lb_row["PlayerID"])
-                score = lb_row["Score"]
-                # Convert score to numeric (lower is better in golf)
-                if score == "E":
-                    numeric_score = 0
-                elif isinstance(score, str):
-                    try:
-                        numeric_score = int(score.replace("+", ""))
-                    except:
-                        numeric_score = 999
-                else:
-                    numeric_score = 999
-                score_lookup[player_id] = numeric_score
-            
-            # Build a reverse lookup: player_name -> player_id
-            name_to_id = {}
-            for username in usernames:
-                for tier_num in range(1, 6):
-                    pick_id = pick_map[username][tier_num]
-                    if pick_id:
+                    if pick_id and not locked:
+                        # Show pick if tournament started
                         cursor.execute("SELECT name_last FROM players WHERE player_id=%s", (pick_id,))
                         player = cursor.fetchone()
-                        if player:
-                            name_to_id[player["name_last"]] = str(pick_id)
-            
-            # Style function to highlight tier leaders
-            def highlight_tier_leaders(s):
-                # s is a Series representing one row (one tier after transpose)
-                tier_scores = {}
+                        pick_name = player["name_last"] if player else "Unknown"
+                        row_data[f"Tier {tier_number}"] = pick_name
+                    else:
+                        # Tournament not started or pick not made
+                        row_data[f"Tier {tier_number}"] = "🔒"
+
+                table.append(row_data)
+
+            # 5️⃣ Display as DataFrame WITH HIGHLIGHTING
+            import pandas as pd
+            df = pd.DataFrame(table)
+
+            # Get leaderboard to highlight leaders in each tier
+            try:
+                leaderboard_for_highlight = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
                 
-                for user_name in s.index:
-                    player_name = s[user_name]
-                    if player_name == "🔒" or player_name not in name_to_id:
-                        continue
+                # Create score lookup: player_id -> numeric_score
+                score_lookup = {}
+                for _, lb_row in leaderboard_for_highlight.iterrows():
+                    player_id = str(lb_row["PlayerID"])
+                    score = lb_row["Score"]
+                    # Convert score to numeric (lower is better in golf)
+                    if score == "E":
+                        numeric_score = 0
+                    elif isinstance(score, str):
+                        try:
+                            numeric_score = int(score.replace("+", ""))
+                        except:
+                            numeric_score = 999
+                    else:
+                        numeric_score = 999
+                    score_lookup[player_id] = numeric_score
+                
+                # Build a reverse lookup: player_name -> player_id
+                name_to_id = {}
+                for username in usernames:
+                    for tier_num in range(1, 6):
+                        pick_id = pick_map[username][tier_num]
+                        if pick_id:
+                            cursor.execute("SELECT name_last FROM players WHERE player_id=%s", (pick_id,))
+                            player = cursor.fetchone()
+                            if player:
+                                name_to_id[player["name_last"]] = str(pick_id)
+                
+                # Style function to highlight tier leaders
+                def highlight_tier_leaders(s):
+                    # s is a Series representing one row (one tier after transpose)
+                    tier_scores = {}
                     
-                    player_id = name_to_id[player_name]
-                    if player_id in score_lookup:
-                        tier_scores[user_name] = score_lookup[player_id]
-                
-                # Find best (lowest) score
-                if not tier_scores:
-                    return [''] * len(s)
-                
-                best_score = min(tier_scores.values())
-                
-                # Return styles
-                return ['background-color: #c9f7d3' if (s[user_name] != "🔒" and 
-                        s[user_name] in name_to_id and 
-                        name_to_id[s[user_name]] in score_lookup and 
-                        score_lookup[name_to_id[s[user_name]]] == best_score)
-                        else '' for user_name in s.index]
-            
-            # Apply styling
-            transposed_df = df.set_index('User').T
-            styled_picks_df = (transposed_df.style
-                            .apply(highlight_tier_leaders, axis=1)
-                            .set_properties(**{'text-align': 'center'}))
-            
-        except Exception as e:
-            # If can't get leaderboard, just show without highlighting
-            transposed_df = df.set_index('User').T
-            styled_picks_df = (transposed_df.style
-                            .set_properties(**{'text-align': 'center'}))
-
-        column_config = {"User": st.column_config.TextColumn("User", width="content")}
-        for tier_number in range(1, 6):
-            column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="content")
-
-        st.dataframe(
-            styled_picks_df,
-            width="stretch",
-            height='content',
-            hide_index=True,
-            column_config=column_config
-        )
-######
-    # 5️⃣ Display as Markdown Table with bolded leaders
-        import pandas as pd
-        df = pd.DataFrame(table)
-
-        # Get leaderboard to find leaders in each tier
-        try:
-            leaderboard_for_highlight = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
-            
-            # Create score lookup: player_id -> numeric_score
-            score_lookup = {}
-            for _, lb_row in leaderboard_for_highlight.iterrows():
-                player_id = str(lb_row["PlayerID"])
-                score = lb_row["Score"]
-                if score == "E":
-                    numeric_score = 0
-                elif isinstance(score, str):
-                    try:
-                        numeric_score = int(score.replace("+", ""))
-                    except:
-                        numeric_score = 999
-                else:
-                    numeric_score = 999
-                score_lookup[player_id] = numeric_score
-            
-            # Build a reverse lookup: player_name -> player_id
-            name_to_id = {}
-            for username in usernames:
-                for tier_num in range(1, 6):
-                    pick_id = pick_map[username][tier_num]
-                    if pick_id:
-                        cursor.execute("SELECT name_last FROM players WHERE player_id=%s", (pick_id,))
-                        player = cursor.fetchone()
-                        if player:
-                            name_to_id[player["name_last"]] = str(pick_id)
-            
-            # Find leaders for each tier
-            tier_leaders = {}
-            df_transposed = df.set_index('User').T
-            
-            for tier_idx, tier_row in df_transposed.iterrows():
-                tier_scores = {}
-                for col in df_transposed.columns:
-                    player_name = df_transposed.loc[tier_idx, col]
-                    if player_name != "🔒" and player_name in name_to_id:
+                    for user_name in s.index:
+                        player_name = s[user_name]
+                        if player_name == "🔒" or player_name not in name_to_id:
+                            continue
+                        
                         player_id = name_to_id[player_name]
                         if player_id in score_lookup:
-                            tier_scores[col] = score_lookup[player_id]
-                
-                if tier_scores:
+                            tier_scores[user_name] = score_lookup[player_id]
+                    
+                    # Find best (lowest) score
+                    if not tier_scores:
+                        return [''] * len(s)
+                    
                     best_score = min(tier_scores.values())
-                    tier_leaders[tier_idx] = [user for user, score in tier_scores.items() if score == best_score]
-                else:
-                    tier_leaders[tier_idx] = []
-            
-        except Exception as e:
-            tier_leaders = {}
-            df_transposed = df.set_index('User').T
-
-        # Build markdown table
-        user_names = [user["name"] for user in users]
-        
-        # Header row
-        markdown = "| **Tier** | " + " | ".join([f"**{name}**" for name in user_names]) + " |\n"
-        markdown += "|" + "---|" * (len(user_names) + 1) + "\n"
-        
-        # Data rows
-        for tier_number in range(1, 6):
-            tier_name = f"Tier {tier_number}"
-            row = f"| **{tier_name}** |"
-            
-            for user_name in user_names:
-                player_name = df_transposed.loc[tier_name, user_name]
+                    
+                    # Return styles
+                    return ['background-color: #c9f7d3' if (s[user_name] != "🔒" and 
+                            s[user_name] in name_to_id and 
+                            name_to_id[s[user_name]] in score_lookup and 
+                            score_lookup[name_to_id[s[user_name]]] == best_score)
+                            else '' for user_name in s.index]
                 
-                # Bold if leader in this tier
-                if tier_name in tier_leaders and user_name in tier_leaders[tier_name]:
-                    cell_content = f" **{player_name}** "
-                else:
-                    cell_content = f" {player_name} "
+                # Apply styling
+                transposed_df = df.set_index('User').T
+                styled_picks_df = (transposed_df.style
+                                .apply(highlight_tier_leaders, axis=1)
+                                .set_properties(**{'text-align': 'center'}))
                 
-                row += cell_content + "|"
+            except Exception as e:
+                # If can't get leaderboard, just show without highlighting
+                transposed_df = df.set_index('User').T
+                styled_picks_df = (transposed_df.style
+                                .set_properties(**{'text-align': 'center'}))
+                score_lookup = {}  # Empty score_lookup for the cumulative score calculation
+
+            # Calculate cumulative scores for each user
+            user_scores = {}
             
-            markdown += row + "\n"
-        
-        # Display the markdown table
-        st.markdown(markdown, unsafe_allow_html=True)
-#######
+            for user in users:
+                username = user["username"]
+                user_name = user["name"]
+                total_score = 0
+                
+                for tier_number in range(1, 6):
+                    pick_id = pick_map[username][tier_number]
+                    if pick_id and str(pick_id) in score_lookup:
+                        total_score += score_lookup[str(pick_id)]
+                
+                # Format score (negative scores get - prefix, positive get +)
+                if total_score == 0:
+                    score_display = "E"
+                elif total_score < 0:
+                    score_display = str(total_score)
+                else:
+                    score_display = f"+{total_score}"
+                
+                user_scores[user_name] = score_display
 
-        st.write("")
-
-        # make filter for only picked players in this tournament
-        def get_picked_players(conn, tournament_id):
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT DISTINCT player_id
-                FROM picks
-                WHERE tournament_id = %s
-            """, (tournament_id,))
+            # Update column config with scores in headers
+            column_config = {}
+            for user in users:
+                user_name = user["name"]
+                score = user_scores.get(user_name, "")
+                header_text = f"{user_name} ({score})" if score else user_name
+                column_config[user_name] = st.column_config.TextColumn(header_text, width="content")
             
-            rows = cursor.fetchall()
-            
-            # Extract player_id from each row dict
-            player_ids = [str(row["player_id"]) for row in rows]
-            
-            return player_ids
+            for tier_number in range(1, 6):
+                column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="content")
 
-        # make leaderboard API call and display
-        try:
-            leaderboard = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
-        except Exception as e:
-            st.error(f"Leaderboard will show when tournament starts... maybe ... {e}")
-            st.stop()
-
-        picked_ids = get_picked_players(conn, tournament_id)
-
-        leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
-
-        leaderboard.drop(columns=["PlayerID"], inplace=True)
-
-        # Reset index to remove index column in display
-        df_display = leaderboard.reset_index(drop=True)
-
-        # Apply style: green color for negative scores (under par)
-        styled_df = (
-            df_display.style
-            .applymap(
-                lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
-                subset=["Score"]
+            st.dataframe(
+                styled_picks_df,
+                width="stretch",
+                height='content',
+                hide_index=True,
+                column_config=column_config
             )
-            .set_properties(**{'text-align': 'center'}, subset=["Score"])
-        )
 
-        # Show in Streamlit
-        st.dataframe(
-            styled_df,
-            width="stretch",
-            height=500,
-            hide_index=True
-        )
+                # ADD THIS ENTIRE SECTION HERE:
+            st.write("")
+            st.write("")
+
+            # make filter for only picked players in this tournament
+            def get_picked_players(conn, tournament_id):
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT DISTINCT player_id
+                    FROM picks
+                    WHERE tournament_id = %s
+                """, (tournament_id,))
+                
+                rows = cursor.fetchall()
+                player_ids = [str(row["player_id"]) for row in rows]
+                return player_ids
+
+            # make leaderboard API call and display
+            try:
+                leaderboard = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
+            except Exception as e:
+                st.error(f"Leaderboard will show when tournament starts... maybe ... {e}")
+                st.stop()
+
+            picked_ids = get_picked_players(conn, tournament_id)
+            leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
+            leaderboard.drop(columns=["PlayerID"], inplace=True)
+
+            # Reset index to remove index column in display
+            df_display = leaderboard.reset_index(drop=True)
+
+            # Apply style: green color for negative scores (under par)
+            styled_leaderboard_df = (
+                df_display.style
+                .applymap(
+                    lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
+                    subset=["Score"]
+                )
+                .set_properties(**{'text-align': 'center'}, subset=["Score"])
+            )
+
+            # Show in Streamlit
+            st.dataframe(
+                styled_leaderboard_df,
+                width="stretch",
+                height=500,
+                hide_index=True
+            )
 
     elif page == "Leaderboard":
         st.title("Overall")
