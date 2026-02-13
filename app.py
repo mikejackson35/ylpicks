@@ -515,9 +515,10 @@ if auth_status:
         st.dataframe(
             styled_picks_df,
             width="stretch",
+            height='content',
             hide_index=True,
             column_config=column_config,
-            row_height=50
+            # row_height=50
         )
 
         st.write("")
