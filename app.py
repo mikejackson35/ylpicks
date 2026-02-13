@@ -488,6 +488,9 @@ if auth_status:
 
         st.write(f"DEBUG: After filtering: {len(leaderboard)} players")  # This will show 0 if IDs don't match
 
+        st.write("Sample picked IDs:", picked_ids[:5])
+        st.write("Sample leaderboard IDs:", leaderboard["PlayerID"].head().tolist())
+
         leaderboard.drop(columns=["PlayerID"], inplace=True)
 
         # Reset index to remove index column in display
