@@ -457,14 +457,15 @@ if auth_status:
         import pandas as pd
 
 
-        def get_picked_players(conn):
+        def get_picked_players(conn, tournament_id):
             query = """
                 SELECT DISTINCT player_id
                 FROM picks
+                WHERE tournament_id = %s
             """
-
-            df = pd.read_sql(query, conn)
-
+            
+            df = pd.read_sql(query, conn, params=(tournament_id,))
+            
             # Convert to string to match RapidAPI IDs
             return df["player_id"].astype(str).tolist()
 
@@ -477,9 +478,15 @@ if auth_status:
             st.error(f"Leaderboard will show when tournament starts... maybe ... {e}")
             st.stop()
 
-        picked_ids = get_picked_players(conn)
+        picked_ids = get_picked_players(conn, tournament_id)  # ✅ Pass tournament_id
+
+        # Debug: Check what you got
+        st.write(f"DEBUG: Found {len(picked_ids)} picked players")
+        st.write(f"DEBUG: Leaderboard has {len(leaderboard)} total players")
 
         leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
+
+        st.write(f"DEBUG: After filtering: {len(leaderboard)} players")  # This will show 0 if IDs don't match
 
         leaderboard.drop(columns=["PlayerID"], inplace=True)
 
