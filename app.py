@@ -566,8 +566,7 @@ if auth_status:
             for user in users:
                 user_name = user["name"]
                 score = user_scores.get(user_name, "")
-                nl = '\n'
-                header_text = f"{user_name} {nl} ({score})" if score else user_name
+                header_text = f"{user_name} ({score})" if score else user_name
                 column_config[user_name] = st.column_config.TextColumn(header_text, width="content")
             
             for tier_number in range(1, 6):
