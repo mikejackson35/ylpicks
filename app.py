@@ -491,6 +491,14 @@ if auth_status:
         st.write("Sample picked IDs:", picked_ids[:5])
         st.write("Sample leaderboard IDs:", leaderboard["PlayerID"].head().tolist())
 
+        st.write("Sample picked IDs:", picked_ids[:10])  # Show more
+        st.write("Sample leaderboard IDs:", leaderboard["PlayerID"].head(20).tolist())  # Show more
+
+        # Check if there's ANY overlap
+        overlap = set(picked_ids) & set(leaderboard["PlayerID"].tolist())
+        st.write(f"Overlapping IDs: {len(overlap)}")
+        st.write("Overlapping IDs:", list(overlap)[:10] if overlap else "NONE!")
+
         leaderboard.drop(columns=["PlayerID"], inplace=True)
 
         # Reset index to remove index column in display
