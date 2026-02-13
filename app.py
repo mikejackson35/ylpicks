@@ -470,8 +470,8 @@ if auth_status:
             # Extract player_id from each row dict
             player_ids = [str(row["player_id"]) for row in rows]
             
-            st.write(f"DEBUG get_picked_players: Found {len(player_ids)} players")
-            st.write(f"DEBUG get_picked_players: Sample IDs: {player_ids[:5]}")
+            # st.write(f"DEBUG get_picked_players: Found {len(player_ids)} players")
+            # st.write(f"DEBUG get_picked_players: Sample IDs: {player_ids[:5]}")
             
             return player_ids
 
@@ -486,21 +486,7 @@ if auth_status:
 
         picked_ids = get_picked_players(conn, tournament_id)  # ✅ Pass tournament_id
 
-        # Debug: Check what you got
-        st.write(f"DEBUG: Found {len(picked_ids)} picked players")
-        st.write(f"DEBUG: Leaderboard has {len(leaderboard)} total players")
-
         leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
-
-        st.write(f"DEBUG: After filtering: {len(leaderboard)} players")  # This will show 0 if IDs don't match
-
-        st.write("Sample picked IDs:", picked_ids[:10])  # Show more
-        st.write("Sample leaderboard IDs:", leaderboard["PlayerID"].head(20).tolist())  # Show more
-
-        # Check if there's ANY overlap
-        overlap = set(picked_ids) & set(leaderboard["PlayerID"].tolist())
-        st.write(f"Overlapping IDs: {len(overlap)}")
-        st.write("Overlapping IDs:", list(overlap)[:10] if overlap else "NONE!")
 
         leaderboard.drop(columns=["PlayerID"], inplace=True)
 
