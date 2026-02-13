@@ -458,26 +458,22 @@ if auth_status:
 
 
         def get_picked_players(conn, tournament_id):
-            # First check if there are ANY picks at all
-            query_all = "SELECT COUNT(*) as total FROM picks"
-            total_picks = pd.read_sql(query_all, conn)
-            st.write(f"Total picks in database: {total_picks['total'].iloc[0]}")
-            
-            # Then check for this tournament
-            query = """
+            cursor = conn.cursor()
+            cursor.execute("""
                 SELECT DISTINCT player_id
                 FROM picks
                 WHERE tournament_id = %s
-            """
+            """, (tournament_id,))
             
-            df = pd.read_sql(query, conn, params=(tournament_id,))
-            st.write(f"Picks for tournament {tournament_id}: {len(df)}")
-            st.write(f"DataFrame:\n{df}")
+            rows = cursor.fetchall()
             
-            if df.empty:
-                return []
+            # Extract player_id from each row dict
+            player_ids = [str(row["player_id"]) for row in rows]
             
-            return [str(pid) for pid in df["player_id"].values]
+            st.write(f"DEBUG get_picked_players: Found {len(player_ids)} players")
+            st.write(f"DEBUG get_picked_players: Sample IDs: {player_ids[:5]}")
+            
+            return player_ids
 
 
 
