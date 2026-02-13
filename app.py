@@ -368,12 +368,8 @@ if auth_status:
 
 
     elif page == "This Week":
-        # col1, space, col2 = st.columns([2.25, .25, 2.50])
-        # with col1:
-        #     # st.title("All Picks")
-        #     st.write("")  # for spacing
-        # with col2:
-        #     # Select tournament
+
+        # Select tournament
         cursor.execute("SELECT tournament_id, name, start_time FROM tournaments ORDER BY start_time")
         tournaments = cursor.fetchall()
         if not tournaments:
@@ -476,9 +472,9 @@ if auth_status:
 
         # make leaderboard API call and display
         try:
-            leaderboard = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])  # ✅ Pass key from secrets
+            leaderboard= get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
         except Exception as e:
-            st.error(f"Leaderboard will show when tournament starts... maybe ... {e}")
+            st.error(f"Leaderboard will show when tournament starts... maybe ...  {e}")
             st.stop()
 
         picked_ids = get_picked_players(conn)

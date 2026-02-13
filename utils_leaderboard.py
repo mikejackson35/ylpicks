@@ -44,7 +44,7 @@ def get_live_leaderboard(api_key, org_id="1", tourn_id="005", year="2026"):
 
     leaderboard_resp = requests.get(
         f"{BASE_URL}/leaderboard",
-        headers=_headers(api_key),  # ✅ Pass the key here
+        headers=_headers(),  # ✅ Pass the key here
         params=params
     )
 
