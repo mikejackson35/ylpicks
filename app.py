@@ -271,7 +271,7 @@ if auth_status:
     st.sidebar.divider()
 
     # PAGE NAVIGATION
-    PAGES = ["Leaderboard", "All Picks", "Make Picks"]
+    PAGES = ["Leaderboard", "This Week", "Make Picks"]
     page = st.sidebar.radio("Go to", PAGES)
 
 
@@ -368,20 +368,21 @@ if auth_status:
                     st.warning("No pick submitted")
 
 
-    elif page == "All Picks":
-        col1, space, col2 = st.columns([2.25, .25, 2.50])
-        with col1:
-            st.title("All Picks")
-        with col2:
-            # Select tournament
-            cursor.execute("SELECT tournament_id, name, start_time FROM tournaments ORDER BY start_time")
-            tournaments = cursor.fetchall()
-            if not tournaments:
-                st.warning("No tournaments available")
-            else:
-                tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
-                selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
-                tournament_id = tournament_map[selected_name]
+    elif page == "This Week":
+        # col1, space, col2 = st.columns([2.25, .25, 2.50])
+        # with col1:
+        #     # st.title("All Picks")
+        #     st.write("")  # for spacing
+        # with col2:
+        #     # Select tournament
+        cursor.execute("SELECT tournament_id, name, start_time FROM tournaments ORDER BY start_time")
+        tournaments = cursor.fetchall()
+        if not tournaments:
+            st.warning("No tournaments available")
+        else:
+            tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
+            selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
+            tournament_id = tournament_map[selected_name]
 
         st.sidebar.divider()
         st.write("")
@@ -447,11 +448,69 @@ if auth_status:
             column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="content")
 
         st.dataframe(
-            df,
+            df.set_index('User').T,
             width="stretch",
             hide_index=True,
             column_config=column_config,
             row_height=50
+        )
+
+        st.write("")
+        # st.title("Leaderboard")
+
+        # make filter for only picked players in this tournament
+        import pandas as pd
+
+
+        def get_picked_players(conn):
+            query = """
+                SELECT DISTINCT player_id
+                FROM picks
+            """
+
+            df = pd.read_sql(query, conn)
+
+            # Convert to string to match RapidAPI IDs
+            return df["player_id"].astype(str).tolist()
+
+
+
+        # make leaderboard API call and display
+        try:
+            leaderboard= get_live_leaderboard()
+        except Exception as e:
+            st.error(f"Leaderboard will show when tournament starts... maybe ...  {e}")
+            st.stop()
+
+        picked_ids = get_picked_players(conn)
+
+        leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
+
+        # Format earnings as currency
+        # leaderboard["Earnings"] = leaderboard["Earnings"].map("${:,.0f}".format)
+
+        leaderboard.drop(columns=["PlayerID"], inplace=True)
+
+        # Reset index to remove index column in display
+        df_display = leaderboard.reset_index(drop=True)
+
+        # Apply style: green color for negative scores (under par)
+        styled_df = (
+            df_display.style
+            .applymap(
+                lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
+                subset=["Score"]
+            )
+            # Center align Score and Earnings columns
+            .set_properties(**{'text-align': 'center'}, subset=["Score"])#, "Earnings"])
+        )
+
+        # Show in Streamlit
+        st.dataframe(
+            styled_df,
+            width="stretch",
+            height=500,
+            hide_index=True
         )
 
     elif page == "Leaderboard":
@@ -528,63 +587,63 @@ if auth_status:
             column_config=column_config
         )
 
-        st.write("")
-        st.title("This Week")
+        # st.write("")
+        # st.title("This Week")
 
-        # make filter for only picked players in this tournament
-        import pandas as pd
-
-
-        def get_picked_players(conn):
-            query = """
-                SELECT DISTINCT player_id
-                FROM picks
-            """
-
-            df = pd.read_sql(query, conn)
-
-            # Convert to string to match RapidAPI IDs
-            return df["player_id"].astype(str).tolist()
+        # # make filter for only picked players in this tournament
+        # import pandas as pd
 
 
+        # def get_picked_players(conn):
+        #     query = """
+        #         SELECT DISTINCT player_id
+        #         FROM picks
+        #     """
 
-        # make leaderboard API call and display
-        try:
-            leaderboard= get_live_leaderboard()
-        except Exception as e:
-            st.error(f"Leaderboard will show when tournament starts... maybe ...  {e}")
-            st.stop()
+        #     df = pd.read_sql(query, conn)
 
-        picked_ids = get_picked_players(conn)
+        #     # Convert to string to match RapidAPI IDs
+        #     return df["player_id"].astype(str).tolist()
 
-        leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
 
-        # Format earnings as currency
-        # leaderboard["Earnings"] = leaderboard["Earnings"].map("${:,.0f}".format)
 
-        leaderboard.drop(columns=["PlayerID"], inplace=True)
+        # # make leaderboard API call and display
+        # try:
+        #     leaderboard= get_live_leaderboard()
+        # except Exception as e:
+        #     st.error(f"Leaderboard will show when tournament starts... maybe ...  {e}")
+        #     st.stop()
 
-        # Reset index to remove index column in display
-        df_display = leaderboard.reset_index(drop=True)
+        # picked_ids = get_picked_players(conn)
 
-        # Apply style: green color for negative scores (under par)
-        styled_df = (
-            df_display.style
-            .applymap(
-                lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
-                subset=["Score"]
-            )
-            # Center align Score and Earnings columns
-            .set_properties(**{'text-align': 'center'}, subset=["Score"])#, "Earnings"])
-        )
+        # leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
 
-        # Show in Streamlit
-        st.dataframe(
-            styled_df,
-            width="stretch",
-            height=500,
-            hide_index=True
-        )
+        # # Format earnings as currency
+        # # leaderboard["Earnings"] = leaderboard["Earnings"].map("${:,.0f}".format)
+
+        # leaderboard.drop(columns=["PlayerID"], inplace=True)
+
+        # # Reset index to remove index column in display
+        # df_display = leaderboard.reset_index(drop=True)
+
+        # # Apply style: green color for negative scores (under par)
+        # styled_df = (
+        #     df_display.style
+        #     .applymap(
+        #         lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
+        #         subset=["Score"]
+        #     )
+        #     # Center align Score and Earnings columns
+        #     .set_properties(**{'text-align': 'center'}, subset=["Score"])#, "Earnings"])
+        # )
+
+        # # Show in Streamlit
+        # st.dataframe(
+        #     styled_df,
+        #     width="stretch",
+        #     height=500,
+        #     hide_index=True
+        # )
 
 
 
