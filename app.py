@@ -458,6 +458,12 @@ if auth_status:
 
 
         def get_picked_players(conn, tournament_id):
+            # First check if there are ANY picks at all
+            query_all = "SELECT COUNT(*) as total FROM picks"
+            total_picks = pd.read_sql(query_all, conn)
+            st.write(f"Total picks in database: {total_picks['total'].iloc[0]}")
+            
+            # Then check for this tournament
             query = """
                 SELECT DISTINCT player_id
                 FROM picks
@@ -465,17 +471,13 @@ if auth_status:
             """
             
             df = pd.read_sql(query, conn, params=(tournament_id,))
+            st.write(f"Picks for tournament {tournament_id}: {len(df)}")
+            st.write(f"DataFrame:\n{df}")
             
-            # Debug: See what we actually got
-            print(f"DataFrame shape: {df.shape}")
-            print(f"DataFrame columns: {df.columns.tolist()}")
-            print(f"First few rows:\n{df.head()}")
-            
-            # Convert to list of strings
             if df.empty:
                 return []
             
-            return [str(pid) for pid in df["player_id"].values]  # ✅ Use .values
+            return [str(pid) for pid in df["player_id"].values]
 
 
 
