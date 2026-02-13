@@ -12,6 +12,36 @@ import os
 import re
 
 
+st.markdown("""
+    <style>
+    /* Hide dataframe toolbar */
+    [data-testid="stElementToolbar"] {
+        display: none;
+    }
+    
+    /* Hide footer */
+    footer {
+        visibility: hidden;
+    }
+    
+    /* Hide the three-dot menu button specifically */
+    button[kind="header"] {
+        display: none;
+    }
+    
+    /* Hide deploy button */
+    .stDeployButton {
+        display: none;
+    }
+    
+    /* Hide app menu but keep header visible for sidebar toggle */
+    [data-testid="stAppViewBlockContainer"] header [data-testid="stHeaderActionElements"] > div:last-child {
+        display: none;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+
 # ----------------------------
 # Database Connection
 # ----------------------------
