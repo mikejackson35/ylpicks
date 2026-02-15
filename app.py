@@ -529,13 +529,21 @@ if auth_status:
                 transposed_df = df.set_index('User').T
                 styled_picks_df = (transposed_df.style
                                 .apply(highlight_tier_leaders, axis=1)
-                                .set_properties(**{'text-align': 'center'}))
+                                .set_properties(**{'text-align': 'center', 'font-size': '12px'})
+                                .set_table_styles([
+                                    {'selector': 'th', 'props': [('font-size', '12px')]},
+                                    {'selector': 'th.col_heading', 'props': [('font-size', '12px')]}
+                                ]))
                 
             except Exception as e:
                 # If can't get leaderboard, just show without highlighting
                 transposed_df = df.set_index('User').T
                 styled_picks_df = (transposed_df.style
-                                .set_properties(**{'text-align': 'center'}))
+                                .set_properties(**{'text-align': 'center', 'font-size': '12px'})
+                                .set_table_styles([
+                                    {'selector': 'th', 'props': [('font-size', '12px')]},
+                                    {'selector': 'th.col_heading', 'props': [('font-size', '12px')]}
+                                ]))
                 score_lookup = {}  # Empty score_lookup for the cumulative score calculation
 
             # Calculate cumulative scores for each user (both display format and numeric)
