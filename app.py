@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_cookies_controller import CookieController
 from utils_leaderboard import get_live_leaderboard
 
 from datetime import datetime
@@ -10,6 +11,9 @@ from datetime import datetime, timezone
 
 import os
 import re
+
+# Initialize cookie controller
+controller = CookieController()
 
 
 st.markdown("""
@@ -94,10 +98,18 @@ add_test_user()
 # AUTHENTICATION (Manual with bcrypt)
 # ----------------------------
 
+# Check for existing cookie first
 if "authentication_status" not in st.session_state:
-    st.session_state["authentication_status"] = None
-    st.session_state["username"] = None
-    st.session_state["name"] = None
+    # Try to restore from cookie
+    saved_username = controller.get("username")
+    if saved_username:
+        st.session_state["authentication_status"] = True
+        st.session_state["username"] = saved_username
+        st.session_state["name"] = controller.get("name")
+    else:
+        st.session_state["authentication_status"] = None
+        st.session_state["username"] = None
+        st.session_state["name"] = None
 
 auth_status = st.session_state["authentication_status"]
 username = st.session_state["username"]
@@ -109,8 +121,8 @@ if auth_status is not True:
     
     with st.form("login_form"):
         login_username = st.text_input("Username")
-        # login_username = login_username.strip().lower()
         login_password = st.text_input("Password", type="password")
+        remember_me = st.checkbox("Stay logged in", value=True)
         submit = st.form_submit_button("Login")
         
         if submit:
@@ -125,6 +137,12 @@ if auth_status is not True:
                     st.session_state["authentication_status"] = True
                     st.session_state["username"] = user["username"]
                     st.session_state["name"] = user["name"]
+                    
+                    # Save to cookies if remember me is checked
+                    if remember_me:
+                        controller.set("username", user["username"])
+                        controller.set("name", user["name"])
+                    
                     st.success("Login successful!")
                     st.rerun()
                 else:
@@ -173,11 +191,16 @@ if not auth_status:
 if auth_status:
     with st.sidebar:
         st.success(f"Logged in as {name}")
-#         if st.button("Logout"):
-#             st.session_state["authentication_status"] = None
-#             st.session_state["username"] = None
-#             st.session_state["name"] = None
-#             st.rerun()
+        if st.button("Logout", key="main_logout"):  # Add key here
+            st.session_state["authentication_status"] = None
+            st.session_state["username"] = None
+            st.session_state["name"] = None
+            
+            # Clear cookies
+            controller.remove("username")
+            controller.remove("name")
+            
+            st.rerun()
 
 
 # ----------------------------
@@ -730,14 +753,14 @@ if auth_status:
 
 
 
-# ----------------------------
-# LOGOUT
-# ----------------------------
-if auth_status is True:
-    with st.sidebar:
-        # st.success(f"Logged in as {name}")
-        if st.button("Logout"):
-            st.session_state["authentication_status"] = None
-            st.session_state["username"] = None
-            st.session_state["name"] = None
-            st.rerun()
+# # ----------------------------
+# # LOGOUT
+# # ----------------------------
+# if auth_status is True:
+#     with st.sidebar:
+#         # st.success(f"Logged in as {name}")
+#         if st.button("Logout"):
+#             st.session_state["authentication_status"] = None
+#             st.session_state["username"] = None
+#             st.session_state["name"] = None
+#             st.rerun()
