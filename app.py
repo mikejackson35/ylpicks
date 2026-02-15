@@ -538,8 +538,9 @@ if auth_status:
                                 .set_properties(**{'text-align': 'center'}))
                 score_lookup = {}  # Empty score_lookup for the cumulative score calculation
 
-            # Calculate cumulative scores for each user
+            # Calculate cumulative scores for each user (both display format and numeric)
             user_scores = {}
+            numeric_scores = {}
             
             for user in users:
                 username = user["username"]
@@ -551,6 +552,9 @@ if auth_status:
                     if pick_id and str(pick_id) in score_lookup:
                         total_score += score_lookup[str(pick_id)]
                 
+                # Store numeric score
+                numeric_scores[user_name] = total_score
+                
                 # Format score (negative scores get - prefix, positive get +)
                 if total_score == 0:
                     score_display = "E"
@@ -561,12 +565,25 @@ if auth_status:
                 
                 user_scores[user_name] = score_display
 
-            # Update column config with scores in headers
+            # Find user(s) with best score
+            if numeric_scores:
+                best_score = min(numeric_scores.values())
+                leaders = [name for name, score in numeric_scores.items() if score == best_score]
+            else:
+                leaders = []
+
+            # Update column config with scores in headers (trophy for leaders)
             column_config = {}
             for user in users:
                 user_name = user["name"]
                 score = user_scores.get(user_name, "")
-                header_text = f"{user_name} ({score})" if score else user_name
+                
+                # Add trophy if this user is leading
+                if user_name in leaders and score != "E":  # Don't show trophy if everyone is at E
+                    header_text = f"🏆 {user_name} ({score})" if score else f"🏆 {user_name}"
+                else:
+                    header_text = f"{user_name} ({score})" if score else user_name
+                
                 column_config[user_name] = st.column_config.TextColumn(header_text, width="content")
             
             for tier_number in range(1, 6):
@@ -580,7 +597,6 @@ if auth_status:
                 column_config=column_config
             )
 
-                # ADD THIS ENTIRE SECTION HERE:
             st.write("")
             st.write("")
 
@@ -625,7 +641,7 @@ if auth_status:
             st.dataframe(
                 styled_leaderboard_df,
                 width="stretch",
-                height=550,
+                height=500,
                 hide_index=True
             )
 
