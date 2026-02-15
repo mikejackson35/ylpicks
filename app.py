@@ -627,14 +627,15 @@ if auth_status:
             # Reset index to remove index column in display
             df_display = leaderboard.reset_index(drop=True)
 
-            # Apply style: green color for negative scores (under par)
+            # Apply style: green color for negative scores (under par) and smaller font
             styled_leaderboard_df = (
                 df_display.style
                 .applymap(
                     lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
                     subset=["Score"]
                 )
-                .set_properties(**{'text-align': 'center'}, subset=["Score"])
+                .set_properties(**{'text-align': 'center', 'font-size': '12px'}, subset=["Score"])
+                .set_properties(**{'font-size': '12px'})  # Apply small font to all columns
             )
 
             # Show in Streamlit
