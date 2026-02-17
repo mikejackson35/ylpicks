@@ -11,13 +11,13 @@ def show(conn, cursor, api_key):
     if not tournaments:
         st.warning("No tournaments available")
         return
-    else:
-        tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
-        selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
-        tournament_id = tournament_map[selected_name]
 
-    st.sidebar.divider()
+    tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
+    selected_name = st.sidebar.selectbox("Tournament", list(tournament_map.keys()), key="this_week_tournament")
+    tournament_id = tournament_map[selected_name]
+
     st.write("")
+    # rest of function continues unchanged...
 
     # Get current time
     now = datetime.now(timezone.utc)

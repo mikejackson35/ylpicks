@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timezone
-import re
 import bcrypt
 
 from auth import init_auth, show_login, show_signup, show_logout, show_password_change
@@ -13,7 +12,6 @@ import _pages.make_picks as make_picks
 # ----------------------------
 # CSS STYLES
 # ----------------------------
-
 st.markdown("""
 <style>
 /* Sidebar radio labels */
@@ -28,7 +26,6 @@ section[data-testid="stSidebar"] input[type="radio"] {
 }
 </style>
 """, unsafe_allow_html=True)
-
 
 # ----------------------------
 # Database Connection
@@ -170,16 +167,13 @@ html = """
     padding: 3px 6px;
     border-bottom: 1px solid #444;
 }
-
 .lb-name {
     text-align: left;
 }
-
 .lb-points {
     font-weight: bold;
 }
 </style>
-
 <div style="text-align:center;">
 <b>Season</b><br><br>
 """
@@ -196,7 +190,6 @@ html += "</div>"
 
 st.sidebar.markdown(html, unsafe_allow_html=True)
 
-# skip 2 lines in the sidebar
 st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
 
 # ----------------------------
@@ -204,13 +197,22 @@ st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
 # ----------------------------
 PAGES = ["This Week", "Make Picks"]
 page = st.sidebar.radio("", PAGES)
-
-# skip 2 lines in the sidebar
 st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
 
 # ----------------------------
-# LOGGED IN - SHOW APP
+# PAGE ROUTING  ← MOVED UP BEFORE LOGOUT/ADMIN
 # ----------------------------
+if page == "This Week":
+    this_week.show(conn, cursor, st.secrets["RAPIDAPI_KEY"])
+
+elif page == "Make Picks":
+    make_picks.show(conn, cursor, username)
+
+# ----------------------------
+# LOGOUT / PASSWORD
+# ----------------------------
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
+st.sidebar.divider()
 show_logout(conn)
 show_password_change(cursor, conn, username)
 
@@ -287,12 +289,3 @@ if username in ADMINS:
                     conn.commit()
                     st.success("Saved")
                     st.rerun()
-
-# ----------------------------
-# PAGE ROUTING
-# ----------------------------
-if page == "This Week":
-    this_week.show(conn, cursor, st.secrets["RAPIDAPI_KEY"])
-
-elif page == "Make Picks":
-    make_picks.show(conn, cursor, username)
