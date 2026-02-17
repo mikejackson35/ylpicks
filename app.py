@@ -603,20 +603,71 @@ if auth_status:
             else:
                 leaders = []
 
-            # Update column config with scores in headers (trophy for leaders)
+            # Add team score row to the transposed dataframe
+            transposed_df = df.set_index('User').T
+            
+            # Create a new row for team scores
+            team_score_row = {}
+            for user in users:
+                user_name = user["name"]
+                team_score_row[user_name] = user_scores.get(user_name, "E")
+            
+            # Insert team score row at the top
+            team_score_df = pd.DataFrame([team_score_row], index=["Team Score"])
+            transposed_with_score = pd.concat([team_score_df, transposed_df])
+
+            # Apply highlighting only to tier rows (not team score row)
+            def highlight_tier_leaders(s):
+                # Skip if this is the Team Score row
+                if s.name == "Team Score":
+                    return [''] * len(s)
+                
+                tier_scores = {}
+                
+                for user_name in s.index:
+                    player_name = s[user_name]
+                    if player_name == "🔒" or player_name not in name_to_id:
+                        continue
+                    
+                    player_id = name_to_id[player_name]
+                    if player_id in score_lookup:
+                        tier_scores[user_name] = score_lookup[player_id]
+                
+                if not tier_scores:
+                    return [''] * len(s)
+                
+                best_score = min(tier_scores.values())
+                
+                return ['background-color: #c9f7d3' if (s[user_name] != "🔒" and 
+                        s[user_name] in name_to_id and 
+                        name_to_id[s[user_name]] in score_lookup and 
+                        score_lookup[name_to_id[s[user_name]]] == best_score)
+                        else '' for user_name in s.index]
+            
+            # Apply styling
+            styled_picks_df = (transposed_with_score.style
+                            .apply(highlight_tier_leaders, axis=1)
+                            .set_properties(**{'text-align': 'center', 'font-size': '12px'})
+                            .set_table_styles([
+                                {'selector': 'th', 'props': [('font-size', '12px')]},
+                                {'selector': 'th.col_heading', 'props': [('font-size', '12px')]}
+                            ]))
+
+            # Update column config with trophy for leaders (no score in brackets anymore)
             column_config = {}
             for user in users:
                 user_name = user["name"]
-                score = user_scores.get(user_name, "")
                 
                 # Add trophy if this user is leading
-                if user_name in leaders and score != "E":  # Don't show trophy if everyone is at E
-                    header_text = f"🏆 {user_name} ({score})" if score else f"🏆 {user_name}"
+                if user_name in leaders and user_scores.get(user_name, "E") != "E":
+                    header_text = f"🏆 {user_name}"
                 else:
-                    header_text = f"{user_name} ({score})" if score else user_name
+                    header_text = user_name
                 
                 column_config[user_name] = st.column_config.TextColumn(header_text, width="content")
             
+            # Add config for Team Score row and tier rows
+            column_config["Team Score"] = st.column_config.TextColumn("Team Score", width="content")
             for tier_number in range(1, 6):
                 column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="content")
 
@@ -799,17 +850,3 @@ if auth_status:
                 hide_index=True,
                 column_config=column_config
             )
-
-
-
-# # ----------------------------
-# # LOGOUT
-# # ----------------------------
-# if auth_status is True:
-#     with st.sidebar:
-#         # st.success(f"Logged in as {name}")
-#         if st.button("Logout"):
-#             st.session_state["authentication_status"] = None
-#             st.session_state["username"] = None
-#             st.session_state["name"] = None
-#             st.rerun()
