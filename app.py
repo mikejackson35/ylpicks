@@ -320,7 +320,7 @@ if auth_status:
                         st.rerun()
 
 
-    # add 4 lines of space
+    # add 2 lines of space
     st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
 
     # Get all users
