@@ -1,88 +1,31 @@
 import streamlit as st
-from streamlit_cookies_controller import CookieController
-from utils_leaderboard import get_live_leaderboard
-
-from datetime import datetime
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import pandas as pd
+from datetime import datetime, timezone
+import re
 import bcrypt
 
-import pandas as pd
-
-from datetime import datetime, timezone
-
-import os
-import re
-
-# Initialize cookie controller
-controller = CookieController()
-
-
-st.markdown("""
-    <style>
-    /* Hide dataframe toolbar */
-    [data-testid="stElementToolbar"] {
-        display: none;
-    }
-    
-    /* Hide footer */
-    footer {
-        visibility: hidden;
-    }
-    
-    /* Hide the three-dot menu button specifically */
-    button[kind="header"] {
-        display: none;
-    }
-    
-    /* Hide deploy button */
-    .stDeployButton {
-        display: none;
-    }
-    
-    /* Hide app menu but keep header visible for sidebar toggle */
-    [data-testid="stAppViewBlockContainer"] header [data-testid="stHeaderActionElements"] > div:last-child {
-        display: none;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
+from auth import init_auth, show_login, show_signup, show_logout, show_password_change
+from utils.db import get_connection
+from utils.leaderboard_api import get_live_leaderboard
+import _pages.this_week as this_week
+import _pages.make_picks as make_picks
 
 # ----------------------------
 # Database Connection
 # ----------------------------
-def get_connection():
-    try:
-        conn = psycopg2.connect(
-            st.secrets["SUPABASE_DB_URL"],  # must be your full Supabase URI
-            sslmode="require",
-            cursor_factory=RealDictCursor
-        )
-        return conn
-    except Exception as e:
-        st.error(f"Failed to connect to Supabase: {e}")
-        return None
-
-# Try to connect
 conn = get_connection()
 if conn is None:
-    st.stop()  # Stop the app if DB connection fails
+    st.stop()
 cursor = conn.cursor()
-
 
 # ----------------------------
 # ADMINS
 # ----------------------------
-ADMINS = {"mj"}  # set of usernames allowed to see admin tools
+ADMINS = {"mj"}
 
 # ----------------------------
-# HELPER FUNCTIONS
+# ADD TEST USER
 # ----------------------------
-def safe_key(s: str) -> str:
-    """Convert string to Streamlit-safe widget key"""
-    s = s.replace(" ", "_").replace("@", "at")
-    return re.sub(r"[^0-9a-zA-Z_]", "", s)
-
 def add_test_user():
     cursor.execute("SELECT 1 FROM users WHERE username = %s", ("mj",))
     if cursor.fetchone() is None:
@@ -97,769 +40,214 @@ def add_test_user():
 add_test_user()
 
 # ----------------------------
-# AUTHENTICATION (Manual with bcrypt)
+# AUTHENTICATION
 # ----------------------------
-
-# Check for existing cookie first
-if "authentication_status" not in st.session_state:
-    # Try to restore from cookie
-    saved_username = controller.get("username")
-    if saved_username:
-        st.session_state["authentication_status"] = True
-        st.session_state["username"] = saved_username
-        st.session_state["name"] = controller.get("name")
-    else:
-        st.session_state["authentication_status"] = None
-        st.session_state["username"] = None
-        st.session_state["name"] = None
+init_auth()
 
 auth_status = st.session_state["authentication_status"]
 username = st.session_state["username"]
 name = st.session_state["name"]
 
-# Manual Login Form
 if auth_status is not True:
-    st.title("Login")
-    
-    with st.form("login_form"):
-        login_username = st.text_input("Username")
-        login_password = st.text_input("Password", type="password")
-        remember_me = st.checkbox("Stay logged in", value=True)
-        submit = st.form_submit_button("Login")
-        
-        if submit:
-            if login_username and login_password:
-                cursor.execute(
-                    "SELECT username, name, password_hash FROM users WHERE username=%s",
-                    (login_username,)
-                )
-                user = cursor.fetchone()
-                
-                if user and bcrypt.checkpw(login_password.encode(), user["password_hash"].encode()):
-                    st.session_state["authentication_status"] = True
-                    st.session_state["username"] = user["username"]
-                    st.session_state["name"] = user["name"]
-                    
-                    # Save to cookies if remember me is checked
-                    if remember_me:
-                        controller.set("username", user["username"])
-                        controller.set("name", user["name"])
-                    
-                    st.success("Login successful!")
-                    st.rerun()
-                else:
-                    st.session_state["authentication_status"] = False
-                    st.error("Username/password is incorrect")
-            else:
-                st.error("Please enter both username and password")
+    show_login(cursor)
+    show_signup(cursor, conn)
+    st.stop()
 
 # ----------------------------
-# SIGN UP (ONLY SHOWN WHEN NOT LOGGED IN)
+# LOGGED IN - SHOW APP
 # ----------------------------
-if not auth_status:
-    with st.expander("Create a New Account"):
-        new_username = st.text_input("Username")
-        # new_username = new_username.strip().lower()
-        new_name = st.text_input("Name")
-        new_pw = st.text_input("Password", type="password")
-
-        if st.button("Create Account"):
-            if not all([new_username, new_name, new_pw]):
-                st.error("All fields are required")
-            else:
-                cursor.execute(
-                    "SELECT 1 FROM users WHERE username=%s",
-                    (new_username,)
-                )
-                if cursor.fetchone():
-                    st.error("Username already exists")
-                else:
-                    pw_hash = bcrypt.hashpw(
-                        new_pw.encode(), bcrypt.gensalt()
-                    ).decode()
-
-                    cursor.execute("""
-                        INSERT INTO users (username, name, password_hash)
-                        VALUES (%s, %s, %s)
-                    """, (new_username, new_name, pw_hash))
-                    conn.commit()
-
-                    st.success("Account created! Please log in above.")
-                    st.rerun()
+show_logout(conn)
+show_password_change(cursor, conn, username)
 
 # ----------------------------
-# LOGOUT
+# ADMIN TOOLS
 # ----------------------------
-if auth_status:
-    with st.sidebar:
-        st.success(f"Logged in as {name}")
-        if st.button("Logout", key="main_logout"):  # Add key here
-            st.session_state["authentication_status"] = None
-            st.session_state["username"] = None
-            st.session_state["name"] = None
-            
-            # Clear cookies
-            controller.remove("username")
-            controller.remove("name")
-            
-            st.rerun()
+if username in ADMINS:
+    with st.sidebar.expander("🛠 Admin: Set Tier Winners"):
 
+        cursor.execute("""
+            SELECT tournament_id, name
+            FROM tournaments
+            ORDER BY start_time
+        """)
+        tournaments = cursor.fetchall()
 
-# ----------------------------
-# APP
-# ----------------------------
-if auth_status:
+        if not tournaments:
+            st.info("No tournaments found")
+        else:
+            tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
+            selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
+            tournament_id = tournament_map[selected_name]
 
-    # PASSWORD CHANGE
-    with st.sidebar.expander("Change Password"):
-        old_pw = st.text_input("Old Password", type="password", key="old_pw")
-        new_pw = st.text_input("New Password", type="password", key="new_pw")
-        confirm_pw = st.text_input("Confirm New Password", type="password", key="confirm_pw")
-        if st.button("Update Password"):
-            if not all([old_pw, new_pw, confirm_pw]):
-                st.error("All fields are required")
-            else:
-                cursor.execute("SELECT password_hash FROM users WHERE username=%s", (username,))
-                result = cursor.fetchone()
-                if result:
-                    stored_hash = result["password_hash"]
-                    if bcrypt.checkpw(old_pw.encode(), stored_hash.encode()):
-                        if new_pw == confirm_pw:
-                            new_hash = bcrypt.hashpw(new_pw.encode(), bcrypt.gensalt()).decode()
-                            cursor.execute("UPDATE users SET password_hash=%s WHERE username=%s", (new_hash, username))
-                            conn.commit()
-                            st.success("Password updated successfully!")
-                            st.rerun()
-                        else:
-                            st.error("New passwords do not match")
-                    else:
-                        st.error("Old password incorrect")
-                else:
-                    st.error("User not found")
+            for tier_number in range(1, 6):
+                st.markdown(f"**Tier {tier_number} Winner**")
 
-    # st.sidebar.divider()
+                cursor.execute("""
+                    SELECT p.player_id, p.name
+                    FROM tiers t
+                    JOIN players p ON p.player_id = t.player_id
+                    WHERE t.tournament_id = %s
+                    AND t.tier_number = %s
+                """, (tournament_id, tier_number))
+                players = cursor.fetchall()
 
-    # ----------------------------
-    # ADMIN TOOLS
-    # ----------------------------
-    if auth_status and username in ADMINS:
+                if not players:
+                    st.info("No players assigned to this tier")
+                    continue
 
-        with st.sidebar.expander("🛠 Admin: Set Tier Winners"):
+                player_options = {p["name"]: p["player_id"] for p in players}
 
-            # Select tournament
-            cursor.execute("""
-                SELECT tournament_id, name
-                FROM tournaments
-                ORDER BY start_time
-            """)
-            tournaments = cursor.fetchall()
-
-            if not tournaments:
-                st.info("No tournaments found")
-            else:
-                tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
-                selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
-                tournament_id = tournament_map[selected_name]
-
-                # For each tier
-                for tier_number in range(1, 6):
-
-                    st.markdown(f"**Tier {tier_number} Winner**")
-
-                    # Players in this tier
-                    cursor.execute("""
-                        SELECT p.player_id, p.name
-                        FROM tiers t
-                        JOIN players p ON p.player_id = t.player_id
-                        WHERE t.tournament_id = %s
-                        AND t.tier_number = %s
-                    """, (tournament_id, tier_number))
-                    players = cursor.fetchall()
-
-                    if not players:
-                        st.info("No players assigned to this tier")
-                        continue
-
-                    player_options = {p["name"]: p["player_id"] for p in players}
-
-                    # Existing result
-                    cursor.execute("""
-                        SELECT winning_player_id
-                        FROM results
-                        WHERE tournament_id=%s AND tier_number=%s
-                    """, (tournament_id, tier_number))
-                    existing = cursor.fetchone()
-
-                    existing_name = None
-                    if existing:
-                        for name, pid in player_options.items():
-                            if pid == existing["winning_player_id"]:
-                                existing_name = name
-
-                    choice = st.selectbox(
-                        f"Winner (Tier {tier_number})",
-                        [""] + list(player_options.keys()),
-                        index=(list(player_options.keys()).index(existing_name) + 1)
-                        if existing_name else 0,
-                        key=f"tier_win_{tournament_id}_{tier_number}"
-                    )
-
-                    if st.button("Save", key=f"save_{tournament_id}_{tier_number}"):
-                        cursor.execute("""
-                            INSERT INTO results (tournament_id, tier_number, winning_player_id)
-                            VALUES (%s, %s, %s)
-                            ON CONFLICT (tournament_id, tier_number)
-                            DO UPDATE SET winning_player_id=EXCLUDED.winning_player_id
-                        """, (
-                            tournament_id,
-                            tier_number,
-                            player_options.get(choice)
-                        ))
-                        conn.commit()
-                        st.success("Saved")
-                        st.rerun()
-
-
-    # add 2 lines of space
-    st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
-
-    # Get all users
-    cursor.execute("SELECT username, name FROM users ORDER BY name")
-    sb_users = cursor.fetchall()
-    sb_name_map = {user["username"]: user["name"] for user in sb_users}
-    sb_usernames = [user["username"] for user in sb_users]
-
-    # Initialize points
-    sb_user_points = {u: 0 for u in sb_usernames}
-
-    # Get all picks
-    cursor.execute("""
-        SELECT username, tournament_id, tier_number, player_id
-        FROM picks
-    """)
-    sb_all_picks = cursor.fetchall()
-    
-    # Get all completed tournaments
-    cursor.execute("""
-        SELECT DISTINCT tournament_id 
-        FROM results
-    """)
-    sb_completed_tournaments = [row["tournament_id"] for row in cursor.fetchall()]
-    
-    # Process each completed tournament
-    for sb_tournament_id in sb_completed_tournaments:
-        cursor.execute("SELECT start_time FROM tournaments WHERE tournament_id=%s", (sb_tournament_id,))
-        sb_tournament_info = cursor.fetchone()
-        sb_start_time = sb_tournament_info["start_time"] if sb_tournament_info else None
-        now = datetime.now(timezone.utc)
-
-        if sb_start_time and now < sb_start_time:
-            continue
-
-        try:
-            sb_leaderboard = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
-            sb_score_lookup = {}
-            
-            for _, lb_row in sb_leaderboard.iterrows():
-                player_id = str(lb_row["PlayerID"])
-                score = lb_row["Score"]
-                if score == "E":
-                    numeric_score = 0
-                elif isinstance(score, str):
-                    try:
-                        numeric_score = int(score.replace("+", ""))
-                    except:
-                        numeric_score = 999
-                else:
-                    numeric_score = 999
-                sb_score_lookup[player_id] = numeric_score
-        except:
-            sb_score_lookup = {}
-
-        sb_tournament_scores = {}
-        
-        for username in sb_usernames:
-            total_score = 0
-            user_picks = [p for p in sb_all_picks 
-                         if p["username"] == username and p["tournament_id"] == sb_tournament_id]
-            
-            for pick in user_picks:
-                tier_number = pick["tier_number"]
-                player_id = str(pick["player_id"])
-                
                 cursor.execute("""
                     SELECT winning_player_id
                     FROM results
                     WHERE tournament_id=%s AND tier_number=%s
-                """, (sb_tournament_id, tier_number))
-                result = cursor.fetchone()
-                
-                if result and str(result["winning_player_id"]) == player_id:
-                    sb_user_points[username] += 1
-                
-                if player_id in sb_score_lookup:
-                    total_score += sb_score_lookup[player_id]
-            
-            sb_tournament_scores[username] = total_score
-        
-        if sb_tournament_scores:
-            sb_best_score = min(sb_tournament_scores.values())
-            for username, score in sb_tournament_scores.items():
-                if score == sb_best_score:
-                    sb_user_points[username] += 1
+                """, (tournament_id, tier_number))
+                existing = cursor.fetchone()
 
-    # Build and display sidebar dataframe
-    sb_df = pd.DataFrame({
-        "Name": [sb_name_map.get(u, u) for u in sb_usernames],
-        "Points": [sb_user_points[u] for u in sb_usernames]
-    })
-    sb_df = sb_df.sort_values("Points", ascending=False).reset_index(drop=True)
+                existing_name = None
+                if existing:
+                    for pname, pid in player_options.items():
+                        if pid == existing["winning_player_id"]:
+                            existing_name = pname
 
-    st.sidebar.dataframe(
-        sb_df,
-        hide_index=True,
-        use_container_width=True,
-        column_config={
-            "Points": st.column_config.NumberColumn("Points", width='small')
-        }
-    )
-
-    st.sidebar.divider()
-
-    # PAGE NAVIGATION
-    PAGES = ["This Week", "Make Picks"]
-    page = st.sidebar.radio("Go to", PAGES)
-
-
-    if page == "Make Picks":
-        col1, space, col2 = st.columns([2.25, .25, 2.50])
-        with col1:
-            st.title("Make Picks")
-        with col2:
-            # Select tournament
-            cursor.execute("SELECT tournament_id, name, start_time FROM tournaments ORDER BY start_time")
-            tournaments = cursor.fetchall()
-            if not tournaments:
-                st.warning("No tournaments available")
-            else:
-                tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
-                selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
-                tournament_id = tournament_map[selected_name]
-
-        st.sidebar.divider()
-
-        # Current time (UTC)
-        from datetime import timezone
-        now = datetime.now(timezone.utc)
-
-        # Get tournament start time to lock picks
-        cursor.execute("SELECT start_time FROM tournaments WHERE tournament_id=%s", (tournament_id,))
-        tournament_info = cursor.fetchone()
-        start_time = tournament_info["start_time"] if tournament_info else None
-        locked = start_time and now >= start_time
-
-        st.write("")
-
-        # For each tier (1–5)
-        for tier_number in range(1, 6):
-            st.subheader(f"Tier {tier_number}")
-
-            # Get players for this tier
-            cursor.execute("""
-                SELECT p.player_id, p.name
-                FROM tiers t
-                JOIN players p ON p.player_id = t.player_id
-                WHERE t.tournament_id=%s AND t.tier_number=%s
-            """, (tournament_id, tier_number))
-            players = cursor.fetchall()
-            if not players:
-                st.info("No players assigned to this tier")
-                continue
-
-            # Get existing pick for this user/tier
-            cursor.execute("""
-                SELECT player_id FROM picks
-                WHERE username=%s AND tournament_id=%s AND tier_number=%s
-            """, (username, tournament_id, tier_number))
-            existing = cursor.fetchone()
-            existing_pick = existing["player_id"] if existing else None
-
-            # Options
-            player_options = {p["name"]: p["player_id"] for p in players}
-
-            if not locked:
-                choice_name = None
-                # If existing pick exists, get name
-                for name, pid in player_options.items():
-                    if pid == existing_pick:
-                        choice_name = name
-
-                choice_name = st.selectbox(
-                    "Select Player",
+                choice = st.selectbox(
+                    f"Winner (Tier {tier_number})",
                     [""] + list(player_options.keys()),
-                    index=(list(player_options.keys()).index(choice_name)+1 if choice_name else 0),
-                    key=f"pick_{tournament_id}_tier{tier_number}_{safe_key(username)}"
+                    index=(list(player_options.keys()).index(existing_name) + 1)
+                    if existing_name else 0,
+                    key=f"tier_win_{tournament_id}_{tier_number}"
                 )
 
-                if st.button("Save", key=f"save_{tournament_id}_tier{tier_number}_{safe_key(username)}"):
-                    # Delete old pick
+                if st.button("Save", key=f"save_{tournament_id}_{tier_number}"):
                     cursor.execute("""
-                        DELETE FROM picks
-                        WHERE username=%s AND tournament_id=%s AND tier_number=%s
-                    """, (username, tournament_id, tier_number))
-                    # Insert new pick
-                    cursor.execute("""
-                        INSERT INTO picks (username, tournament_id, tier_number, player_id, timestamp)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (username, tournament_id, tier_number, player_options.get(choice_name), now.isoformat()))
+                        INSERT INTO results (tournament_id, tier_number, winning_player_id)
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (tournament_id, tier_number)
+                        DO UPDATE SET winning_player_id=EXCLUDED.winning_player_id
+                    """, (
+                        tournament_id,
+                        tier_number,
+                        player_options.get(choice)
+                    ))
                     conn.commit()
-                    st.success(f"Saved pick: {choice_name}")
+                    st.success("Saved")
                     st.rerun()
+
+st.sidebar.divider()
+
+# ----------------------------
+# SEASON LEADERBOARD IN SIDEBAR
+# ----------------------------
+st.sidebar.markdown("**Season Leaderboard**")
+
+cursor.execute("SELECT username, name FROM users ORDER BY name")
+sb_users = cursor.fetchall()
+sb_name_map = {user["username"]: user["name"] for user in sb_users}
+sb_usernames = [user["username"] for user in sb_users]
+
+sb_user_points = {u: 0 for u in sb_usernames}
+
+cursor.execute("""
+    SELECT username, tournament_id, tier_number, player_id
+    FROM picks
+""")
+sb_all_picks = cursor.fetchall()
+
+cursor.execute("""
+    SELECT DISTINCT tournament_id 
+    FROM results
+""")
+sb_completed_tournaments = [row["tournament_id"] for row in cursor.fetchall()]
+
+for sb_tournament_id in sb_completed_tournaments:
+    cursor.execute("SELECT start_time FROM tournaments WHERE tournament_id=%s", (sb_tournament_id,))
+    sb_tournament_info = cursor.fetchone()
+    sb_start_time = sb_tournament_info["start_time"] if sb_tournament_info else None
+    now = datetime.now(timezone.utc)
+
+    if sb_start_time and now < sb_start_time:
+        continue
+
+    try:
+        sb_leaderboard = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
+        sb_score_lookup = {}
+
+        for _, lb_row in sb_leaderboard.iterrows():
+            player_id = str(lb_row["PlayerID"])
+            score = lb_row["Score"]
+            if score == "E":
+                numeric_score = 0
+            elif isinstance(score, str):
+                try:
+                    numeric_score = int(score.replace("+", ""))
+                except:
+                    numeric_score = 999
             else:
-                if existing_pick:
-                    # Display name for locked pick
-                    locked_name = next((name for name, pid in player_options.items() if pid == existing_pick), "Unknown")
-                    st.info(f"Your locked pick: **{locked_name}**")
-                else:
-                    st.warning("No pick submitted")
+                numeric_score = 999
+            sb_score_lookup[player_id] = numeric_score
+    except:
+        sb_score_lookup = {}
 
-    elif page == "This Week":
+    sb_tournament_scores = {}
 
-            # Select tournament
-            cursor.execute("SELECT tournament_id, name, start_time FROM tournaments ORDER BY start_time")
-            tournaments = cursor.fetchall()
-            if not tournaments:
-                st.warning("No tournaments available")
-            else:
-                tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
-                selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
-                tournament_id = tournament_map[selected_name]
+    for sb_username in sb_usernames:
+        total_score = 0
+        user_picks = [p for p in sb_all_picks
+                     if p["username"] == sb_username and p["tournament_id"] == sb_tournament_id]
 
-            st.sidebar.divider()
-            st.write("")
+        for pick in user_picks:
+            tier_number = pick["tier_number"]
+            player_id = str(pick["player_id"])
 
-            # Get current time
-            from datetime import datetime, timezone
-            now = datetime.now(timezone.utc)
-
-            # Get tournament start time
-            cursor.execute("SELECT start_time FROM tournaments WHERE tournament_id=%s", (tournament_id,))
-            tournament_info = cursor.fetchone()
-            start_time = tournament_info["start_time"] if tournament_info else None
-            now = datetime.now(timezone.utc)
-            locked = start_time and now < start_time  # locked = True if tournament hasn't started
-
-            # 1️⃣ Get all users
-            cursor.execute("SELECT username, name FROM users")
-            users = cursor.fetchall()
-            usernames = [u["username"] for u in users]
-            name_map = {u["username"]: u["name"] for u in users}
-
-            # 2️⃣ Get picks for this tournament
             cursor.execute("""
-                SELECT username, tier_number, player_id
-                FROM picks
-                WHERE tournament_id=%s
-            """, (tournament_id,))
-            rows = cursor.fetchall()
+                SELECT winning_player_id
+                FROM results
+                WHERE tournament_id=%s AND tier_number=%s
+            """, (sb_tournament_id, tier_number))
+            result = cursor.fetchone()
 
-            # 3️⃣ Build lookup: username -> tier_number -> player_id
-            pick_map = {u: {tier: None for tier in range(1, 6)} for u in usernames}
-            for row in rows:
-                pick_map[row["username"]][row["tier_number"]] = row["player_id"]
+            if result and str(result["winning_player_id"]) == player_id:
+                sb_user_points[sb_username] += 1
 
-            # 4️⃣ Build display table
-            table = []
-            for user in users:
-                username = user["username"]
-                row_data = {"User": user["name"]}
+            if player_id in sb_score_lookup:
+                total_score += sb_score_lookup[player_id]
 
-                for tier_number in range(1, 6):
-                    pick_id = pick_map[username][tier_number]
+        sb_tournament_scores[sb_username] = total_score
 
-                    if pick_id and not locked:
-                        # Show pick if tournament started
-                        cursor.execute("SELECT name_last FROM players WHERE player_id=%s", (pick_id,))
-                        player = cursor.fetchone()
-                        pick_name = player["name_last"] if player else "Unknown"
-                        row_data[f"Tier {tier_number}"] = pick_name
-                    else:
-                        # Tournament not started or pick not made
-                        row_data[f"Tier {tier_number}"] = "🔒"
+    if sb_tournament_scores:
+        sb_best_score = min(sb_tournament_scores.values())
+        for sb_username, score in sb_tournament_scores.items():
+            if score == sb_best_score:
+                sb_user_points[sb_username] += 1
 
-                table.append(row_data)
+sb_df = pd.DataFrame({
+    "Name": [sb_name_map.get(u, u) for u in sb_usernames],
+    "Points": [sb_user_points[u] for u in sb_usernames]
+})
+sb_df = sb_df.sort_values("Points", ascending=False).reset_index(drop=True)
 
-            # 5️⃣ Display as DataFrame WITH HIGHLIGHTING
-            import pandas as pd
-            df = pd.DataFrame(table)
+st.sidebar.dataframe(
+    sb_df,
+    hide_index=True,
+    use_container_width=True,
+    column_config={
+        "Points": st.column_config.NumberColumn("Points", width='small')
+    }
+)
 
-            # Get leaderboard to highlight leaders in each tier
-            try:
-                leaderboard_for_highlight = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
-                
-                # Create score lookup: player_id -> numeric_score
-                score_lookup = {}
-                for _, lb_row in leaderboard_for_highlight.iterrows():
-                    player_id = str(lb_row["PlayerID"])
-                    score = lb_row["Score"]
-                    # Convert score to numeric (lower is better in golf)
-                    if score == "E":
-                        numeric_score = 0
-                    elif isinstance(score, str):
-                        try:
-                            numeric_score = int(score.replace("+", ""))
-                        except:
-                            numeric_score = 999
-                    else:
-                        numeric_score = 999
-                    score_lookup[player_id] = numeric_score
-                
-                # Build a reverse lookup: player_name -> player_id
-                name_to_id = {}
-                for username in usernames:
-                    for tier_num in range(1, 6):
-                        pick_id = pick_map[username][tier_num]
-                        if pick_id:
-                            cursor.execute("SELECT name_last FROM players WHERE player_id=%s", (pick_id,))
-                            player = cursor.fetchone()
-                            if player:
-                                name_to_id[player["name_last"]] = str(pick_id)
-                
-                # Style function to highlight tier leaders
-                def highlight_tier_leaders(s):
-                    # s is a Series representing one row (one tier after transpose)
-                    tier_scores = {}
-                    
-                    for user_name in s.index:
-                        player_name = s[user_name]
-                        if player_name == "🔒" or player_name not in name_to_id:
-                            continue
-                        
-                        player_id = name_to_id[player_name]
-                        if player_id in score_lookup:
-                            tier_scores[user_name] = score_lookup[player_id]
-                    
-                    # Find best (lowest) score
-                    if not tier_scores:
-                        return [''] * len(s)
-                    
-                    best_score = min(tier_scores.values())
-                    
-                    # Return styles
-                    return ['background-color: #c9f7d3' if (s[user_name] != "🔒" and 
-                            s[user_name] in name_to_id and 
-                            name_to_id[s[user_name]] in score_lookup and 
-                            score_lookup[name_to_id[s[user_name]]] == best_score)
-                            else '' for user_name in s.index]
-                
-                # Apply styling
-                transposed_df = df.set_index('User').T
-                styled_picks_df = (transposed_df.style
-                                .apply(highlight_tier_leaders, axis=1)
-                                .set_properties(**{'text-align': 'center', 'font-size': '12px'})
-                                .set_table_styles([
-                                    {'selector': 'th', 'props': [('font-size', '12px')]},
-                                    {'selector': 'th.col_heading', 'props': [('font-size', '12px')]}
-                                ]))
-                
-            except Exception as e:
-                # If can't get leaderboard, just show without highlighting
-                transposed_df = df.set_index('User').T
-                styled_picks_df = (transposed_df.style
-                                .set_properties(**{'text-align': 'center', 'font-size': '12px'})
-                                .set_table_styles([
-                                    {'selector': 'th', 'props': [('font-size', '12px')]},
-                                    {'selector': 'th.col_heading', 'props': [('font-size', '12px')]}
-                                ]))
-                score_lookup = {}  # Empty score_lookup for the cumulative score calculation
+st.sidebar.divider()
 
-            # Calculate cumulative scores for each user (both display format and numeric)
-            user_scores = {}
-            numeric_scores = {}
-            
-            for user in users:
-                username = user["username"]
-                user_name = user["name"]
-                total_score = 0
-                
-                for tier_number in range(1, 6):
-                    pick_id = pick_map[username][tier_number]
-                    if pick_id and str(pick_id) in score_lookup:
-                        total_score += score_lookup[str(pick_id)]
-                
-                # Store numeric score
-                numeric_scores[user_name] = total_score
-                
-                # Format score (negative scores get - prefix, positive get +)
-                if total_score == 0:
-                    score_display = "E"
-                elif total_score < 0:
-                    score_display = str(total_score)
-                else:
-                    score_display = f"+{total_score}"
-                
-                user_scores[user_name] = score_display
+# ----------------------------
+# PAGE NAVIGATION
+# ----------------------------
+PAGES = ["This Week", "Make Picks"]
+page = st.sidebar.radio("Go to", PAGES)
 
-            # Find user(s) with best score
-            if numeric_scores:
-                best_score = min(numeric_scores.values())
-                leaders = [name for name, score in numeric_scores.items() if score == best_score]
-            else:
-                leaders = []
+# ----------------------------
+# PAGE ROUTING
+# ----------------------------
+if page == "This Week":
+    this_week.show(conn, cursor, st.secrets["RAPIDAPI_KEY"])
 
-            # Add team score row to the transposed dataframe
-            transposed_df = df.set_index('User').T
-            
-            # Create a new row for team scores
-            team_score_row = {}
-            for user in users:
-                user_name = user["name"]
-                team_score_row[user_name] = user_scores.get(user_name, "E")
-            
-            # Insert team score row at the top
-            team_score_df = pd.DataFrame([team_score_row], index=["Team Score"])
-            transposed_with_score = pd.concat([team_score_df, transposed_df])
-
-            # Apply highlighting only to tier rows (not team score row)
-            def highlight_tier_leaders(s):
-                # Skip if this is the Team Score row
-                if s.name == "Team Score":
-                    return [''] * len(s)
-                
-                tier_scores = {}
-                
-                for user_name in s.index:
-                    player_name = s[user_name]
-                    if player_name == "🔒" or player_name not in name_to_id:
-                        continue
-                    
-                    player_id = name_to_id[player_name]
-                    if player_id in score_lookup:
-                        tier_scores[user_name] = score_lookup[player_id]
-                
-                if not tier_scores:
-                    return [''] * len(s)
-                
-                best_score = min(tier_scores.values())
-                
-                return ['background-color: #c9f7d3' if (s[user_name] != "🔒" and 
-                        s[user_name] in name_to_id and 
-                        name_to_id[s[user_name]] in score_lookup and 
-                        score_lookup[name_to_id[s[user_name]]] == best_score)
-                        else '' for user_name in s.index]
-            
-            # Apply styling
-            styled_picks_df = (transposed_with_score.style
-                            .apply(highlight_tier_leaders, axis=1)
-                            .set_properties(**{'text-align': 'center', 'font-size': '12px'})
-                            .set_table_styles([
-                                {'selector': 'th', 'props': [('font-size', '12px')]},
-                                {'selector': 'th.col_heading', 'props': [('font-size', '12px')]}
-                            ]))
-
-            # Update column config with trophy for leaders (no score in brackets anymore)
-            column_config = {}
-            for user in users:
-                user_name = user["name"]
-                
-                # Add trophy if this user is leading
-                if user_name in leaders and user_scores.get(user_name, "E") != "E":
-                    header_text = f"🏆 {user_name}"
-                else:
-                    header_text = user_name
-                
-                column_config[user_name] = st.column_config.TextColumn(header_text, width="content")
-            
-            # Add config for Team Score row and tier rows
-            column_config["Team Score"] = st.column_config.TextColumn("Team Score", width="content")
-            for tier_number in range(1, 6):
-                column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="content")
-
-            st.dataframe(
-                styled_picks_df,
-                width="stretch",
-                height='content',
-                hide_index=True,
-                column_config=column_config
-            )
-
-            st.write("")
-            st.write("")
-
-            # make filter for only picked players in this tournament
-            def get_picked_players(conn, tournament_id):
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT DISTINCT player_id
-                    FROM picks
-                    WHERE tournament_id = %s
-                """, (tournament_id,))
-                
-                rows = cursor.fetchall()
-                player_ids = [str(row["player_id"]) for row in rows]
-                return player_ids
-
-            # make leaderboard API call and display
-            try:
-                leaderboard = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
-            except Exception as e:
-                st.error(f"Leaderboard will show when tournament starts... maybe ... {e}")
-                st.stop()
-
-            picked_ids = get_picked_players(conn, tournament_id)
-            leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
-            
-            # Create player_id to tier lookup before dropping PlayerID
-            player_tier_map = {}
-            for _, row in leaderboard.iterrows():
-                player_id = str(row["PlayerID"])
-                # Get tier for this player
-                cursor.execute("""
-                    SELECT tier_number
-                    FROM tiers
-                    WHERE tournament_id = %s AND player_id = %s
-                """, (tournament_id, player_id))
-                tier_result = cursor.fetchone()
-                if tier_result:
-                    player_tier_map[row["Player"]] = tier_result["tier_number"]
-            
-            leaderboard.drop(columns=["PlayerID"], inplace=True)
-
-            # Reset index to remove index column in display
-            df_display = leaderboard.reset_index(drop=True)
-
-            # Define light colors for each tier
-            tier_colors = {
-                1: "#FFE6E6",  # Light red
-                2: "#FFF4E6",  # Light orange
-                3: "#FFFBE6",  # Light yellow
-                4: "#E6F7FF",  # Light blue
-                5: "#F0E6FF"   # Light purple
-            }
-
-            # Apply style: tier colors, green scores, and smaller font
-            def highlight_by_tier(row):
-                player_name = row["Player"]
-                tier = player_tier_map.get(player_name)
-                bg_color = tier_colors.get(tier, "")
-                
-                return [f'background-color: {bg_color}' if bg_color else '' for _ in row]
-
-            styled_leaderboard_df = (
-                df_display.style
-                .apply(highlight_by_tier, axis=1)
-                .applymap(
-                    lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
-                    subset=["Score"]
-                )
-                .set_properties(**{'text-align': 'center', 'font-size': '12px'}, subset=["Score"])
-                .set_properties(**{'font-size': '12px'})  # Apply small font to all columns
-            )
-
-            # Show in Streamlit
-            st.dataframe(
-                styled_leaderboard_df,
-                width="stretch",
-                height=500,
-                hide_index=True
-            )
+elif page == "Make Picks":
+    make_picks.show(conn, cursor, username)
