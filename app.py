@@ -60,6 +60,94 @@ show_logout(conn)
 show_password_change(cursor, conn, username)
 
 # ----------------------------
+# SEASON STANDINGS HEADER
+# ----------------------------
+cursor.execute("SELECT username, name FROM users ORDER BY name")
+sb_users = cursor.fetchall()
+sb_name_map = {user["username"]: user["name"] for user in sb_users}
+sb_usernames = [user["username"] for user in sb_users]
+sb_user_points = {u: 0 for u in sb_usernames}
+
+cursor.execute("SELECT username, tournament_id, tier_number, player_id FROM picks")
+sb_all_picks = cursor.fetchall()
+
+cursor.execute("SELECT DISTINCT tournament_id FROM results")
+sb_completed_tournaments = [row["tournament_id"] for row in cursor.fetchall()]
+
+for sb_tournament_id in sb_completed_tournaments:
+    cursor.execute("SELECT start_time FROM tournaments WHERE tournament_id=%s", (sb_tournament_id,))
+    sb_tournament_info = cursor.fetchone()
+    sb_start_time = sb_tournament_info["start_time"] if sb_tournament_info else None
+    now = datetime.now(timezone.utc)
+
+    if sb_start_time and now < sb_start_time:
+        continue
+
+    try:
+        sb_leaderboard = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
+        sb_score_lookup = {}
+        for _, lb_row in sb_leaderboard.iterrows():
+            player_id = str(lb_row["PlayerID"])
+            score = lb_row["Score"]
+            if score == "E":
+                numeric_score = 0
+            elif isinstance(score, str):
+                try:
+                    numeric_score = int(score.replace("+", ""))
+                except:
+                    numeric_score = 999
+            else:
+                numeric_score = 999
+            sb_score_lookup[player_id] = numeric_score
+    except:
+        sb_score_lookup = {}
+
+    sb_tournament_scores = {}
+    for sb_username in sb_usernames:
+        total_score = 0
+        user_picks = [p for p in sb_all_picks
+                     if p["username"] == sb_username and p["tournament_id"] == sb_tournament_id]
+
+        for pick in user_picks:
+            tier_number = pick["tier_number"]
+            player_id = str(pick["player_id"])
+
+            cursor.execute("""
+                SELECT winning_player_id
+                FROM results
+                WHERE tournament_id=%s AND tier_number=%s
+            """, (sb_tournament_id, tier_number))
+            result = cursor.fetchone()
+
+            if result and str(result["winning_player_id"]) == player_id:
+                sb_user_points[sb_username] += 1
+
+            if player_id in sb_score_lookup:
+                total_score += sb_score_lookup[player_id]
+
+        sb_tournament_scores[sb_username] = total_score
+
+    if sb_tournament_scores:
+        sb_best_score = min(sb_tournament_scores.values())
+        for sb_username, score in sb_tournament_scores.items():
+            if score == sb_best_score:
+                sb_user_points[sb_username] += 1
+
+sb_df = pd.DataFrame({
+    "Name": [sb_name_map.get(u, u) for u in sb_usernames],
+    "Points": [sb_user_points[u] for u in sb_usernames]
+}).sort_values("Points", ascending=False).reset_index(drop=True)
+
+# Display standings as markdown header
+standings_parts = []
+for _, row in sb_df.iterrows():
+    standings_parts.append(f"**{row['Name']}** {row['Points']}")
+
+standings_str = "&nbsp;&nbsp;&nbsp;".join(standings_parts)
+st.markdown(f"<p style='font-size:14px'>{standings_str}</p>", unsafe_allow_html=True)
+st.divider()
+
+# ----------------------------
 # ADMIN TOOLS
 # ----------------------------
 if username in ADMINS:
