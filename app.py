@@ -678,7 +678,7 @@ if auth_status:
             )
 
     elif page == "Leaderboard":
-            st.title("Overall")
+            st.title("Season Leaderboard")
             st.sidebar.divider()
 
             # 1️⃣ Get all users
@@ -795,7 +795,7 @@ if auth_status:
 
             st.dataframe(
                 df,
-                width="stretch",
+                width="content",
                 hide_index=True,
                 column_config=column_config
             )
