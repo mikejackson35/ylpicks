@@ -704,14 +704,46 @@ if auth_status:
 
             picked_ids = get_picked_players(conn, tournament_id)
             leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
+            
+            # Create player_id to tier lookup before dropping PlayerID
+            player_tier_map = {}
+            for _, row in leaderboard.iterrows():
+                player_id = str(row["PlayerID"])
+                # Get tier for this player
+                cursor.execute("""
+                    SELECT tier_number
+                    FROM tiers
+                    WHERE tournament_id = %s AND player_id = %s
+                """, (tournament_id, player_id))
+                tier_result = cursor.fetchone()
+                if tier_result:
+                    player_tier_map[row["Player"]] = tier_result["tier_number"]
+            
             leaderboard.drop(columns=["PlayerID"], inplace=True)
 
             # Reset index to remove index column in display
             df_display = leaderboard.reset_index(drop=True)
 
-            # Apply style: green color for negative scores (under par) and smaller font
+            # Define light colors for each tier
+            tier_colors = {
+                1: "#FFE6E6",  # Light red
+                2: "#FFF4E6",  # Light orange
+                3: "#FFFBE6",  # Light yellow
+                4: "#E6F7FF",  # Light blue
+                5: "#F0E6FF"   # Light purple
+            }
+
+            # Apply style: tier colors, green scores, and smaller font
+            def highlight_by_tier(row):
+                player_name = row["Player"]
+                tier = player_tier_map.get(player_name)
+                bg_color = tier_colors.get(tier, "")
+                
+                return [f'background-color: {bg_color}' if bg_color else '' for _ in row]
+
             styled_leaderboard_df = (
                 df_display.style
+                .apply(highlight_by_tier, axis=1)
                 .applymap(
                     lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
                     subset=["Score"]
