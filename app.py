@@ -11,6 +11,26 @@ import _pages.this_week as this_week
 import _pages.make_picks as make_picks
 
 # ----------------------------
+# CSS STYLES
+# ----------------------------
+
+st.markdown("""
+<style>
+/* Sidebar radio labels */
+section[data-testid="stSidebar"] label {
+    font-size: 40px !important;
+    font-weight: 700 !important;
+}
+
+/* Make the actual radio circles slightly bigger */
+section[data-testid="stSidebar"] input[type="radio"] {
+    transform: scale(1.3);
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ----------------------------
 # Database Connection
 # ----------------------------
 conn = get_connection()
@@ -161,7 +181,7 @@ html = """
 </style>
 
 <div style="text-align:center;">
-<b>Season Standings</b><br><br>
+<b>Season</b><br><br>
 """
 
 for _, row in sb_df.iterrows():
@@ -175,9 +195,6 @@ for _, row in sb_df.iterrows():
 html += "</div>"
 
 st.sidebar.markdown(html, unsafe_allow_html=True)
-
-
-
 
 # skip 2 lines in the sidebar
 st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
