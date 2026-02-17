@@ -7,6 +7,8 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import bcrypt
 
+import pandas as pd
+
 from datetime import datetime, timezone
 
 import os
@@ -318,12 +320,114 @@ if auth_status:
                         st.rerun()
 
 
+    # add 4 lines of space
+    st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
 
+    # Get all users
+    cursor.execute("SELECT username, name FROM users ORDER BY name")
+    sb_users = cursor.fetchall()
+    sb_name_map = {user["username"]: user["name"] for user in sb_users}
+    sb_usernames = [user["username"] for user in sb_users]
+
+    # Initialize points
+    sb_user_points = {u: 0 for u in sb_usernames}
+
+    # Get all picks
+    cursor.execute("""
+        SELECT username, tournament_id, tier_number, player_id
+        FROM picks
+    """)
+    sb_all_picks = cursor.fetchall()
+    
+    # Get all completed tournaments
+    cursor.execute("""
+        SELECT DISTINCT tournament_id 
+        FROM results
+    """)
+    sb_completed_tournaments = [row["tournament_id"] for row in cursor.fetchall()]
+    
+    # Process each completed tournament
+    for sb_tournament_id in sb_completed_tournaments:
+        cursor.execute("SELECT start_time FROM tournaments WHERE tournament_id=%s", (sb_tournament_id,))
+        sb_tournament_info = cursor.fetchone()
+        sb_start_time = sb_tournament_info["start_time"] if sb_tournament_info else None
+        now = datetime.now(timezone.utc)
+
+        if sb_start_time and now < sb_start_time:
+            continue
+
+        try:
+            sb_leaderboard = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
+            sb_score_lookup = {}
+            
+            for _, lb_row in sb_leaderboard.iterrows():
+                player_id = str(lb_row["PlayerID"])
+                score = lb_row["Score"]
+                if score == "E":
+                    numeric_score = 0
+                elif isinstance(score, str):
+                    try:
+                        numeric_score = int(score.replace("+", ""))
+                    except:
+                        numeric_score = 999
+                else:
+                    numeric_score = 999
+                sb_score_lookup[player_id] = numeric_score
+        except:
+            sb_score_lookup = {}
+
+        sb_tournament_scores = {}
+        
+        for username in sb_usernames:
+            total_score = 0
+            user_picks = [p for p in sb_all_picks 
+                         if p["username"] == username and p["tournament_id"] == sb_tournament_id]
+            
+            for pick in user_picks:
+                tier_number = pick["tier_number"]
+                player_id = str(pick["player_id"])
+                
+                cursor.execute("""
+                    SELECT winning_player_id
+                    FROM results
+                    WHERE tournament_id=%s AND tier_number=%s
+                """, (sb_tournament_id, tier_number))
+                result = cursor.fetchone()
+                
+                if result and str(result["winning_player_id"]) == player_id:
+                    sb_user_points[username] += 1
+                
+                if player_id in sb_score_lookup:
+                    total_score += sb_score_lookup[player_id]
+            
+            sb_tournament_scores[username] = total_score
+        
+        if sb_tournament_scores:
+            sb_best_score = min(sb_tournament_scores.values())
+            for username, score in sb_tournament_scores.items():
+                if score == sb_best_score:
+                    sb_user_points[username] += 1
+
+    # Build and display sidebar dataframe
+    sb_df = pd.DataFrame({
+        "Name": [sb_name_map.get(u, u) for u in sb_usernames],
+        "Points": [sb_user_points[u] for u in sb_usernames]
+    })
+    sb_df = sb_df.sort_values("Points", ascending=False).reset_index(drop=True)
+
+    st.sidebar.dataframe(
+        sb_df,
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            "Points": st.column_config.NumberColumn("Points", width='small')
+        }
+    )
 
     st.sidebar.divider()
 
     # PAGE NAVIGATION
-    PAGES = ["Leaderboard", "This Week", "Make Picks"]
+    PAGES = ["This Week", "Make Picks"]
     page = st.sidebar.radio("Go to", PAGES)
 
 
@@ -758,127 +862,4 @@ if auth_status:
                 width="stretch",
                 height=500,
                 hide_index=True
-            )
-
-    elif page == "Leaderboard":
-            st.title("Season Leaderboard")
-            st.sidebar.divider()
-
-            # 1️⃣ Get all users
-            cursor.execute("SELECT username, name FROM users ORDER BY name")
-            users = cursor.fetchall()
-            name_map = {user["username"]: user["name"] for user in users}
-            usernames = [user["username"] for user in users]
-
-            # 2️⃣ Initialize points
-            user_points = {u: 0 for u in usernames}
-
-            # 3️⃣ Get all picks
-            cursor.execute("""
-                SELECT username, tournament_id, tier_number, player_id
-                FROM picks
-            """)
-            all_picks = cursor.fetchall()
-            
-            # Get all completed tournaments (those with results entered)
-            cursor.execute("""
-                SELECT DISTINCT tournament_id 
-                FROM results
-            """)
-            completed_tournaments = [row["tournament_id"] for row in cursor.fetchall()]
-            
-            # 4️⃣ Process each completed tournament
-            for tournament_id in completed_tournaments:
-                # Get tournament start time
-                cursor.execute("SELECT start_time FROM tournaments WHERE tournament_id=%s", (tournament_id,))
-                tournament_info = cursor.fetchone()
-                start_time = tournament_info["start_time"] if tournament_info else None
-                now = datetime.now(timezone.utc)
-
-                if start_time and now < start_time:
-                    continue  # skip tournaments that haven't started yet
-
-                # Get live leaderboard for this tournament to calculate best overall score
-                try:
-                    leaderboard = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
-                    
-                    # Create score lookup: player_id -> numeric_score
-                    score_lookup = {}
-                    
-                    for _, lb_row in leaderboard.iterrows():
-                        player_id = str(lb_row["PlayerID"])
-                        score = lb_row["Score"]
-                        
-                        # Convert score to numeric (lower is better in golf)
-                        if score == "E":
-                            numeric_score = 0
-                        elif isinstance(score, str):
-                            try:
-                                numeric_score = int(score.replace("+", ""))
-                            except:
-                                numeric_score = 999
-                        else:
-                            numeric_score = 999
-                        score_lookup[player_id] = numeric_score
-                except:
-                    score_lookup = {}
-
-                # Calculate points for each user in this tournament
-                tournament_scores = {}
-                
-                for username in usernames:
-                    total_score = 0
-                    
-                    # Get all picks for this user in this tournament
-                    user_picks = [p for p in all_picks 
-                                if p["username"] == username and p["tournament_id"] == tournament_id]
-                    
-                    for pick in user_picks:
-                        tier_number = pick["tier_number"]
-                        player_id = str(pick["player_id"])
-                        
-                        # Check tier winner (1 point for win/tie)
-                        cursor.execute("""
-                            SELECT winning_player_id
-                            FROM results
-                            WHERE tournament_id=%s AND tier_number=%s
-                        """, (tournament_id, tier_number))
-                        result = cursor.fetchone()
-                        
-                        if result and str(result["winning_player_id"]) == player_id:
-                            user_points[username] += 1  # 1 point for tier win
-                        
-                        # Add to tournament score for best overall calculation
-                        if player_id in score_lookup:
-                            total_score += score_lookup[player_id]
-                    
-                    # Store tournament score for best overall calculation
-                    tournament_scores[username] = total_score
-                
-                # Award 1 point for best overall team score (ties allowed)
-                if tournament_scores:
-                    best_score = min(tournament_scores.values())
-                    for username, score in tournament_scores.items():
-                        if score == best_score:
-                            user_points[username] += 1
-
-            # 5️⃣ Build DataFrame with full names
-            import pandas as pd
-            df = pd.DataFrame({
-                "Name": [name_map.get(u, u) for u in usernames],
-                "Points": [user_points[u] for u in usernames]
-            })
-
-            # 6️⃣ Sort descending
-            df = df.sort_values("Points", ascending=False).reset_index(drop=True)
-
-            column_config = {
-                "Points": st.column_config.NumberColumn("Points", width='content')
-            }
-
-            st.dataframe(
-                df,
-                width="content",
-                hide_index=True,
-                column_config=column_config
             )
