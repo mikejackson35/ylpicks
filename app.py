@@ -191,7 +191,7 @@ if username in ADMINS:
 
                 cursor.execute("""
                     SELECT p.player_id, p.name
-                    FROM tiers t
+                    FROM weekly_tiers t
                     JOIN players p ON p.player_id = t.player_id
                     WHERE t.tournament_id = %s
                     AND t.tier_number = %s

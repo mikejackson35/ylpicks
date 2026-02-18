@@ -48,7 +48,7 @@ def show(conn, cursor, username):
             st.caption(f"Tier {tier_number}")
             
             cursor.execute("""
-                SELECT player_id FROM picks
+                SELECT player_id FROM user_picks
                 WHERE username=%s AND tournament_id=%s AND tier_number=%s
             """, (username, tournament_id, tier_number))
             existing = cursor.fetchone()
@@ -92,15 +92,14 @@ def show(conn, cursor, username):
 
         # Get existing pick for this user/tier
         cursor.execute("""
-            SELECT player_id FROM picks
+            SELECT player_id FROM user_picks
             WHERE username=%s AND tournament_id=%s AND tier_number=%s
         """, (username, tournament_id, tier_number))
         existing = cursor.fetchone()
-        existing_pick = existing["player_id"] if existing else None
+        existing_pick = str(existing["player_id"]) if existing else None
 
         # Options
         player_options = {p["name"]: p["player_id"] for p in players}
-
         choice_name = None
         # If existing pick exists, get name
         for name, pid in player_options.items():
@@ -129,17 +128,21 @@ def show(conn, cursor, username):
     if st.button("💾 Save All Picks", type="primary", disabled=bool(missing_tiers)):
         # Delete all existing picks for this tournament
         cursor.execute("""
-            DELETE FROM picks
+            DELETE FROM user_picks
             WHERE username=%s AND tournament_id=%s
         """, (username, tournament_id))
+
         
-        # Insert all new picks
+    # Insert all new picks
         for tier_number, player_id in user_picks.items():
             if player_id:  # Should always be true due to validation
+                # Create user_picks_id as concatenation
+                user_picks_id = f"{tournament_id}_{tier_number}_{username}"
+                
                 cursor.execute("""
-                    INSERT INTO picks (username, tournament_id, tier_number, player_id, timestamp)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (username, tournament_id, tier_number, player_id, now.isoformat()))
+                    INSERT INTO user_picks (username, tournament_id, tier_number, player_id, timestamp, user_picks_id)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (username, tournament_id, tier_number, player_id, now.isoformat(), user_picks_id))
         
         conn.commit()
         st.success("✅ All picks saved successfully!")

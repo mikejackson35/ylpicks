@@ -40,7 +40,7 @@ def show(conn, cursor, api_key):
     # 2️⃣ Get picks for this tournament
     cursor.execute("""
         SELECT username, tier_number, player_id
-        FROM picks
+        FROM user_picks
         WHERE tournament_id=%s
     """, (tournament_id,))
     rows = cursor.fetchall()
@@ -141,8 +141,8 @@ def show(conn, cursor, api_key):
         else:
             score_display = f"+{total_score}"
 
-        user_scores[user_name] = score_display
-
+        # user_scores[user_name] = score_display
+        user_scores[user_name] = "E"
     # Find user(s) with best score
     if numeric_scores:
         best_score = min(numeric_scores.values())
@@ -249,7 +249,7 @@ def show(conn, cursor, api_key):
         cur = conn.cursor()
         cur.execute("""
             SELECT DISTINCT player_id
-            FROM picks
+            FROM user_picks
             WHERE tournament_id = %s
         """, (tournament_id,))
 
@@ -325,9 +325,11 @@ def show(conn, cursor, api_key):
         .set_properties(**{'font-size': '12px'})
     )
 
-    st.dataframe(
-        styled_leaderboard_df,
-        width="stretch",
-        height=500,
-        hide_index=True
-    )
+    # st.dataframe(
+    #     styled_leaderboard_df,
+    #     width="stretch",
+    #     height=500,
+    #     hide_index=True
+    # )
+
+    st.write("Leaderboard will display when tournament begins")
