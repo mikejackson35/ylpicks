@@ -45,7 +45,7 @@ def show(conn, cursor, username):
         
         # Show locked picks
         for tier_number in range(1, 7):
-            st.subheader(f"Tier {tier_number}")
+            st.caption(f"Tier {tier_number}")
             
             cursor.execute("""
                 SELECT player_id FROM picks
@@ -74,7 +74,7 @@ def show(conn, cursor, username):
     user_picks = {}
     
     for tier_number in range(1, 7):
-        st.subheader(f"Tier {tier_number}")
+        st.caption(f"Tier {tier_number}")
 
         # Get players for this tier
         cursor.execute("""
