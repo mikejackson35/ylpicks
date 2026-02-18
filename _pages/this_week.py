@@ -2,32 +2,38 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timezone
 
+# be sure that there are no restrictions on putting a tier 6 when inserting to table tiers using sql
+
 
 def show(conn, cursor, api_key):
 
-    # Select tournament
-    cursor.execute("SELECT tournament_id, name, start_time FROM tournaments ORDER BY start_time")
-    tournaments = cursor.fetchall()
-    if not tournaments:
-        st.warning("No tournaments available")
-        return
-
-    tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
-    selected_name = st.sidebar.selectbox("Tournament", list(tournament_map.keys()), key="this_week_tournament")
-    tournament_id = tournament_map[selected_name]
-
-    st.write("")
-    # rest of function continues unchanged...
-
-    # Get current time
+    # Get current tournament (most recent tournament that has started or will start soon)
     now = datetime.now(timezone.utc)
+    
+    cursor.execute("""
+        SELECT tournament_id, name, start_time 
+        FROM tournaments 
+        WHERE start_time <= %s + INTERVAL '7 days'
+        ORDER BY start_time DESC
+        LIMIT 1
+    """, (now,))
+    
+    tournament = cursor.fetchone()
+    
+    if not tournament:
+        st.warning("No current tournament available")
+        return
+    
+    tournament_id = tournament["tournament_id"]
+    st.title(tournament["name"])
+    
+    st.write("")
 
     # Get tournament start time
-    cursor.execute("SELECT start_time FROM tournaments WHERE tournament_id=%s", (tournament_id,))
-    tournament_info = cursor.fetchone()
-    start_time = tournament_info["start_time"] if tournament_info else None
-    now = datetime.now(timezone.utc)
+    start_time = tournament["start_time"]
     locked = start_time and now < start_time  # locked = True if tournament hasn't started
+    
+    # rest of the function continues unchanged...
 
     # 1️⃣ Get all users
     cursor.execute("SELECT username, name FROM users")
@@ -44,7 +50,7 @@ def show(conn, cursor, api_key):
     rows = cursor.fetchall()
 
     # 3️⃣ Build lookup: username -> tier_number -> player_id
-    pick_map = {u: {tier: None for tier in range(1, 6)} for u in usernames}
+    pick_map = {u: {tier: None for tier in range(1, 7)} for u in usernames}
     for row in rows:
         pick_map[row["username"]][row["tier_number"]] = row["player_id"]
 
@@ -54,7 +60,7 @@ def show(conn, cursor, api_key):
         username = user["username"]
         row_data = {"User": user["name"]}
 
-        for tier_number in range(1, 6):
+        for tier_number in range(1, 7):
             pick_id = pick_map[username][tier_number]
 
             if pick_id and not locked:
@@ -96,7 +102,7 @@ def show(conn, cursor, api_key):
         # Build a reverse lookup: player_name -> player_id
         name_to_id = {}
         for username in usernames:
-            for tier_num in range(1, 6):
+            for tier_num in range(1, 7):
                 pick_id = pick_map[username][tier_num]
                 if pick_id:
                     cursor.execute("SELECT name_last FROM players WHERE player_id=%s", (pick_id,))
@@ -117,7 +123,7 @@ def show(conn, cursor, api_key):
         user_name = user["name"]
         total_score = 0
 
-        for tier_number in range(1, 6):
+        for tier_number in range(1, 7):
             pick_id = pick_map[username][tier_number]
             if pick_id and str(pick_id) in score_lookup:
                 total_score += score_lookup[str(pick_id)]
@@ -202,7 +208,7 @@ def show(conn, cursor, api_key):
         column_config[user_name] = st.column_config.TextColumn(header_text, width="content")
 
     column_config["Team Score"] = st.column_config.TextColumn("Team Score", width="content")
-    for tier_number in range(1, 6):
+    for tier_number in range(1, 7):
         column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="content")
 
     st.dataframe(
@@ -233,12 +239,23 @@ def show(conn, cursor, api_key):
     try:
         from utils.leaderboard_api import get_live_leaderboard
         leaderboard = get_live_leaderboard(api_key)
+        
+        # Check if leaderboard is empty before filtering
+        if leaderboard.empty:
+            st.info("🏌️ Live leaderboard will appear once the tournament begins")
+            return
+            
     except Exception as e:
-        st.error(f"Leaderboard will show when tournament starts... maybe ... {e}")
+        st.info("🏌️ Live leaderboard will appear once the tournament begins")
         return
 
     picked_ids = get_picked_players(conn, tournament_id)
     leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
+    
+    # Check if leaderboard is empty after filtering
+    if leaderboard.empty:
+        st.info("🏌️ Live leaderboard will appear once the tournament begins")
+        return
 
     # Create player_id to tier lookup before dropping PlayerID
     player_tier_map = {}
@@ -246,7 +263,7 @@ def show(conn, cursor, api_key):
         player_id = str(row["PlayerID"])
         cursor.execute("""
             SELECT tier_number
-            FROM tiers
+            FROM weekly_tiers
             WHERE tournament_id = %s AND player_id = %s
         """, (tournament_id, player_id))
         tier_result = cursor.fetchone()
@@ -264,7 +281,8 @@ def show(conn, cursor, api_key):
         2: "#FFF4E6",  # Light orange
         3: "#FFFBE6",  # Light yellow
         4: "#E6F7FF",  # Light blue
-        5: "#F0E6FF"   # Light purple
+        5: "#F0E6FF",  # Light purple
+        6: "#E6FFE6"   # Light green
     }
 
     # Apply style: tier colors, green scores, smaller font

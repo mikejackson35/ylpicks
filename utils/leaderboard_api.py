@@ -34,7 +34,7 @@ def earnings_to_df(rows):
     ])
 
 
-def get_live_leaderboard(api_key, org_id="1", tourn_id="005", year="2026"):
+def get_live_leaderboard(api_key, org_id="1", tourn_id="007", year="2026"):
     params = {
         "orgId": org_id,
         "tournId": tourn_id,

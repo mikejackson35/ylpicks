@@ -10,48 +10,84 @@ def safe_key(s: str) -> str:
 
 def show(conn, cursor, username):
     
-    col1, space, col2 = st.columns([2.25, .25, 2.50])
-    with col1:
-        st.title("Make Picks")
-    with col2:
-        # Select tournament
-        cursor.execute("SELECT tournament_id, name, start_time FROM tournaments ORDER BY start_time")
-        tournaments = cursor.fetchall()
-        if not tournaments:
-            st.warning("No tournaments available")
-            return
-        else:
-            tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
-            selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
-            tournament_id = tournament_map[selected_name]
-
+    # Get current tournament (most recent tournament that hasn't locked yet)
+    now = datetime.now(timezone.utc)
+    
+    cursor.execute("""
+        SELECT tournament_id, name, start_time 
+        FROM tournaments 
+        WHERE start_time >= %s - INTERVAL '1 day'
+        ORDER BY start_time ASC
+        LIMIT 1
+    """, (now,))
+    
+    tournament = cursor.fetchone()
+    
+    if not tournament:
+        st.warning("No upcoming tournament available for picks")
+        return
+    
+    tournament_id = tournament["tournament_id"]
+    st.title("Make Picks")
+    st.subheader(tournament["name"])
+    
     st.sidebar.divider()
 
-    # Current time (UTC)
-    now = datetime.now(timezone.utc)
-
     # Get tournament start time to lock picks
-    cursor.execute("SELECT start_time FROM tournaments WHERE tournament_id=%s", (tournament_id,))
-    tournament_info = cursor.fetchone()
-    start_time = tournament_info["start_time"] if tournament_info else None
+    start_time = tournament["start_time"]
     locked = start_time and now >= start_time
 
     st.write("")
 
-    # For each tier (1-5)
-    for tier_number in range(1, 6):
+    if locked:
+        st.warning("⏰ Picks are locked - tournament has started")
+        st.write("")
+        
+        # Show locked picks
+        for tier_number in range(1, 7):
+            st.subheader(f"Tier {tier_number}")
+            
+            cursor.execute("""
+                SELECT player_id FROM picks
+                WHERE username=%s AND tournament_id=%s AND tier_number=%s
+            """, (username, tournament_id, tier_number))
+            existing = cursor.fetchone()
+            
+            if existing:
+                cursor.execute("""
+                    SELECT p.player_id, p.name
+                    FROM weekly_tiers t
+                    JOIN players p ON CAST(p.player_id AS TEXT) = CAST(t.player_id AS TEXT)
+                    WHERE t.tournament_id=%s AND t.tier_number=%s
+                """, (tournament_id, tier_number))
+                players = cursor.fetchall()
+                player_options = {p["name"]: p["player_id"] for p in players}
+                
+                locked_name = next((name for name, pid in player_options.items() if pid == existing["player_id"]), "Unknown")
+                st.info(f"Your locked pick: **{locked_name}**")
+            else:
+                st.warning("No pick submitted")
+        
+        return
+
+    # Tournament not locked - show selection form
+    user_picks = {}
+    
+    for tier_number in range(1, 7):
         st.subheader(f"Tier {tier_number}")
 
         # Get players for this tier
         cursor.execute("""
             SELECT p.player_id, p.name
-            FROM tiers t
-            JOIN players p ON p.player_id = t.player_id
+            FROM weekly_tiers t
+            JOIN players p ON CAST(p.player_id AS TEXT) = CAST(t.player_id AS TEXT)
             WHERE t.tournament_id=%s AND t.tier_number=%s
         """, (tournament_id, tier_number))
         players = cursor.fetchall()
+        
         if not players:
             st.info("No players assigned to this tier")
+            user_picks[tier_number] = None
             continue
 
         # Get existing pick for this user/tier
@@ -65,38 +101,46 @@ def show(conn, cursor, username):
         # Options
         player_options = {p["name"]: p["player_id"] for p in players}
 
-        if not locked:
-            choice_name = None
-            # If existing pick exists, get name
-            for name, pid in player_options.items():
-                if pid == existing_pick:
-                    choice_name = name
+        choice_name = None
+        # If existing pick exists, get name
+        for name, pid in player_options.items():
+            if pid == existing_pick:
+                choice_name = name
 
-            choice_name = st.selectbox(
-                "Select Player",
-                [""] + list(player_options.keys()),
-                index=(list(player_options.keys()).index(choice_name)+1 if choice_name else 0),
-                key=f"pick_{tournament_id}_tier{tier_number}_{safe_key(username)}"
-            )
+        choice_name = st.selectbox(
+            "",
+            [""] + list(player_options.keys()),
+            index=(list(player_options.keys()).index(choice_name)+1 if choice_name else 0),
+            key=f"pick_{tournament_id}_tier{tier_number}_{safe_key(username)}"
+        )
+        
+        user_picks[tier_number] = player_options.get(choice_name) if choice_name else None
 
-            if st.button("Save", key=f"save_{tournament_id}_tier{tier_number}_{safe_key(username)}"):
-                # Delete old pick
-                cursor.execute("""
-                    DELETE FROM picks
-                    WHERE username=%s AND tournament_id=%s AND tier_number=%s
-                """, (username, tournament_id, tier_number))
-                # Insert new pick
+    st.write("")
+    st.write("---")
+    
+    # Validation check
+    missing_tiers = [tier for tier, pick in user_picks.items() if pick is None]
+    
+    if missing_tiers:
+        st.warning(f"⚠️ Please select players for all tiers. Missing: Tier {', Tier '.join(map(str, missing_tiers))}")
+    
+    # Single save button
+    if st.button("💾 Save All Picks", type="primary", disabled=bool(missing_tiers)):
+        # Delete all existing picks for this tournament
+        cursor.execute("""
+            DELETE FROM picks
+            WHERE username=%s AND tournament_id=%s
+        """, (username, tournament_id))
+        
+        # Insert all new picks
+        for tier_number, player_id in user_picks.items():
+            if player_id:  # Should always be true due to validation
                 cursor.execute("""
                     INSERT INTO picks (username, tournament_id, tier_number, player_id, timestamp)
                     VALUES (%s, %s, %s, %s, %s)
-                """, (username, tournament_id, tier_number, player_options.get(choice_name), now.isoformat()))
-                conn.commit()
-                st.success(f"Saved pick: {choice_name}")
-                st.rerun()
-        else:
-            if existing_pick:
-                # Display name for locked pick
-                locked_name = next((name for name, pid in player_options.items() if pid == existing_pick), "Unknown")
-                st.info(f"Your locked pick: **{locked_name}**")
-            else:
-                st.warning("No pick submitted")
+                """, (username, tournament_id, tier_number, player_id, now.isoformat()))
+        
+        conn.commit()
+        st.success("✅ All picks saved successfully!")
+        st.rerun()
