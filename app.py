@@ -27,6 +27,7 @@ section[data-testid="stSidebar"] input[type="radio"] {
 </style>
 """, unsafe_allow_html=True)
 
+
 # ----------------------------
 # Database Connection
 # ----------------------------
@@ -35,10 +36,12 @@ if conn is None:
     st.stop()
 cursor = conn.cursor()
 
+
 # ----------------------------
 # ADMINS
 # ----------------------------
 ADMINS = {"mj"}
+
 
 # ----------------------------
 # ADD TEST USER
@@ -69,7 +72,7 @@ if auth_status is not True:
     show_login(cursor)
     show_signup(cursor, conn)
     st.stop()
-    
+
 # ----------------------------
 # SEASON STANDINGS IN SIDEBAR
 # ----------------------------
@@ -127,7 +130,18 @@ html += "</div>"
 
 st.sidebar.markdown(html, unsafe_allow_html=True)
 
-st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
+
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
+with st.sidebar.expander("Scoring Rules"):
+    st.markdown("""
+    - Tier Win: +1  
+    - Best Team: +1  
+    - Missed Cut (MC): -1  
+    """)
+
+
+
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
 
 # ----------------------------
 # PAGE NAVIGATION
@@ -149,7 +163,6 @@ elif page == "Make Picks":
 # LOGOUT / PASSWORD
 # ----------------------------
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
-st.sidebar.divider()
 show_logout(conn)
 show_password_change(cursor, conn, username)
 
