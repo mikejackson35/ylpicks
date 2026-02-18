@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timezone
 
-# be sure that there are no restrictions on putting a tier 6 when inserting to table tiers using sql
-
 
 def show(conn, cursor, api_key):
 
@@ -32,8 +30,6 @@ def show(conn, cursor, api_key):
     # Get tournament start time
     start_time = tournament["start_time"]
     locked = start_time and now < start_time  # locked = True if tournament hasn't started
-    
-    # rest of the function continues unchanged...
 
     # 1️⃣ Get all users
     cursor.execute("SELECT username, name FROM users")
@@ -78,16 +74,23 @@ def show(conn, cursor, api_key):
     # 5️⃣ Build DataFrame
     df = pd.DataFrame(table)
 
-    # Get leaderboard to highlight leaders in each tier
+    # Get leaderboard to highlight leaders in each tier and track missed cuts
     try:
         from utils.leaderboard_api import get_live_leaderboard
         leaderboard_for_highlight = get_live_leaderboard(api_key)
 
-        # Create score lookup: player_id -> numeric_score
+        # Create score lookup and cut status
         score_lookup = {}
+        cut_status = {}  # player_id -> True if missed cut
+        
         for _, lb_row in leaderboard_for_highlight.iterrows():
             player_id = str(lb_row["PlayerID"])
             score = lb_row["Score"]
+            status = str(lb_row.get("Status", "active")).lower()
+            
+            # Track missed cuts
+            cut_status[player_id] = (status == "cut")
+            
             if score == "E":
                 numeric_score = 0
             elif isinstance(score, str):
@@ -113,6 +116,7 @@ def show(conn, cursor, api_key):
     except Exception as e:
         score_lookup = {}
         name_to_id = {}
+        cut_status = {}
 
     # Calculate cumulative scores for each user
     user_scores = {}
@@ -159,7 +163,7 @@ def show(conn, cursor, api_key):
     team_score_df = pd.DataFrame([team_score_row], index=["Team Score"])
     transposed_with_score = pd.concat([team_score_df, transposed_df])
 
-    # Style function to highlight tier leaders
+    # Style function to highlight tier leaders (green) and missed cuts (red)
     def highlight_tier_leaders(s):
         if s.name == "Team Score":
             return [''] * len(s)
@@ -180,11 +184,29 @@ def show(conn, cursor, api_key):
 
         best_score = min(tier_scores.values())
 
-        return ['background-color: #c9f7d3' if (s[user_name] != "🔒" and
-                s[user_name] in name_to_id and
-                name_to_id[s[user_name]] in score_lookup and
-                score_lookup[name_to_id[s[user_name]]] == best_score)
-                else '' for user_name in s.index]
+        styles = []
+        for user_name in s.index:
+            player_name = s[user_name]
+            
+            # Check if tier leader (green has priority)
+            is_leader = (player_name != "🔒" and 
+                        player_name in name_to_id and 
+                        name_to_id[player_name] in score_lookup and 
+                        score_lookup[name_to_id[player_name]] == best_score)
+            
+            if is_leader:
+                styles.append('background-color: #c9f7d3')  # Green for leader
+            elif player_name in name_to_id:
+                # Check for missed cut (red)
+                player_id = name_to_id[player_name]
+                if cut_status.get(player_id, False):
+                    styles.append('background-color: #ffcccc')  # Light red for missed cut
+                else:
+                    styles.append('')
+            else:
+                styles.append('')
+        
+        return styles
 
     # Apply styling
     styled_picks_df = (transposed_with_score.style
@@ -270,7 +292,7 @@ def show(conn, cursor, api_key):
         if tier_result:
             player_tier_map[row["Player"]] = tier_result["tier_number"]
 
-    leaderboard.drop(columns=["PlayerID"], inplace=True)
+    leaderboard.drop(columns=["PlayerID", "Status"], inplace=True)  # Drop Status too
 
     # Reset index
     df_display = leaderboard.reset_index(drop=True)

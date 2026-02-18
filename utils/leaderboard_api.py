@@ -18,7 +18,8 @@ def leaderboard_to_df(rows):
             "PlayerID": p.get("playerId"),
             "Pos": p.get("position"),
             "Player": f"{p.get('firstName')} {p.get('lastName')}",
-            "Score": p.get("total")
+            "Score": p.get("total"),
+            "Status": p.get("status", "active")  # Added status field
         }
         for p in rows
     ])

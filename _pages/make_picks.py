@@ -28,8 +28,8 @@ def show(conn, cursor, username):
         return
     
     tournament_id = tournament["tournament_id"]
-    st.title("Make Picks")
-    st.subheader(tournament["name"])
+    st.subheader("Make Picks")
+    st.write("Be sure to hit save!")
     
     st.sidebar.divider()
 
