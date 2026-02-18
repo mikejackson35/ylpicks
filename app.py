@@ -134,9 +134,9 @@ st.sidebar.markdown(html, unsafe_allow_html=True)
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
 with st.sidebar.expander("Scoring Rules"):
     st.markdown("""
-    - Tier Win: +1  
-    - Best Team: +1  
-    - Missed Cut (MC): -1  
+    Tier Winner:   +1pt  
+    Lowest Team:   +1pt  
+    Missed Cut:   -1pt  
     """)
 
 
