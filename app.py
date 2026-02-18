@@ -27,6 +27,16 @@ section[data-testid="stSidebar"] input[type="radio"] {
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown("""
+<style>
+[data-testid="stDataFrameToolbar"],
+[data-testid="stElementToolbar"] {
+    display: none;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 
 # ----------------------------
 # Database Connection
