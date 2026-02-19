@@ -15,29 +15,30 @@ import _pages.make_picks as make_picks
 st.markdown("""
 <style>
 
-/* Fix top spacing so title doesn't clip */
+/* --- Fix top spacing (prevents title from clipping) --- */
 .block-container {
     padding-top: 3.5rem;
 }
 
-/* Hide GitHub / Fork everywhere (desktop + mobile) */
+/* --- Hide GitHub / Fork everywhere (desktop + mobile) --- */
 [data-testid="stAppViewContainer"] a[href*="github.com"] {
     display: none !important;
 }
 
-/* Remove Share + Deploy */
+/* --- Hide Share + Deploy buttons --- */
 header button[aria-label="Share"],
 header button[aria-label="Deploy"] {
     display: none !important;
 }
 
-/* Hide footer */
+/* --- Hide footer --- */
 footer {
     visibility: hidden;
 }
 
 </style>
 """, unsafe_allow_html=True)
+
 
 
 # ----------------------------
