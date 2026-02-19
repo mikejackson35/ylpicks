@@ -68,8 +68,8 @@ def show(conn, cursor, api_key):
                 row_data[f"Tier {tier_number}"] = pick_name
             else:
                 # Tournament not started or pick not made
-                # row_data[f"Tier {tier_number}"] = "🔒"
-                row_data[f"Tier {tier_number}"] = "-"
+                row_data[f"Tier {tier_number}"] = "🔒"
+                # row_data[f"Tier {tier_number}"] = "-"
 
         table.append(row_data)
 
