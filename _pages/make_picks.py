@@ -114,8 +114,7 @@ def show(conn, cursor, username):
         
         with col1:
             st.write(f"**Tier {tier_number}**")
-            st.write("")
-        
+                    
         with col2:
             choice_name = st.selectbox(
                 "",  # Empty label since tier number is in col1
