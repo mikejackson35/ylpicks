@@ -14,44 +14,48 @@ import _pages.make_picks as make_picks
 # ----------------------------
 st.markdown("""
 <style>
-/* Sidebar radio labels */
+
+/* ---------- Sidebar Styling ---------- */
 section[data-testid="stSidebar"] label {
     font-size: 40px !important;
     font-weight: 700 !important;
 }
 
-/* Make the actual radio circles slightly bigger */
 section[data-testid="stSidebar"] input[type="radio"] {
     transform: scale(1.3);
 }
-</style>
-""", unsafe_allow_html=True)
 
-st.markdown("""
-<style>
+/* ---------- Remove DataFrame Hover Toolbars ---------- */
 [data-testid="stDataFrameToolbar"],
 [data-testid="stElementToolbar"] {
-    display: none;
+    display: none !important;
 }
-</style>
-""", unsafe_allow_html=True)
 
-st.markdown("""
-<style>
+/* ---------- Reduce Top Padding ---------- */
 .block-container {
     padding-top: 0.25rem;
 }
+
+/* ---------- Remove Header Buttons (keep hamburger) ---------- */
+header a[href*="github.com"] {
+    display: none !important;
+}
+
+header button[aria-label="Share"],
+header button[aria-label="Deploy"] {
+    display: none !important;
+}
+
+/* ---------- Remove Footer ---------- */
+footer {
+    display: none !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<style>
-/* Hide GitHub/Fork button in header */
-[data-testid="stHeader"] a[href*="github.com"] {
-    display: none !important;
-}
-</style>
-""", unsafe_allow_html=True)
+
+
 
 
 
