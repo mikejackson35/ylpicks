@@ -30,6 +30,12 @@ header button[aria-label="Share"],
 header button[aria-label="Deploy"] {
     display: none !important;
 }
+            
+/* ---------- Remove DataFrame Hover Toolbars ---------- */
+[data-testid="stDataFrameToolbar"],
+[data-testid="stElementToolbar"] {
+    display: none !important;
+}
 
 /* --- Hide footer --- */
 footer {

@@ -331,10 +331,10 @@ def show(conn, cursor, api_key):
     styled_leaderboard_df = (
         df_display.style
         .apply(highlight_by_tier, axis=1)
-        .applymap(
-            lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
-            subset=["Score"]
-        )
+        # .applymap(
+        #     lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
+        #     subset=["Score"]
+        # )
         .set_properties(**{'text-align': 'center', 'font-size': '12px'}, subset=["Score"])
         .set_properties(**{'font-size': '12px'})
     )

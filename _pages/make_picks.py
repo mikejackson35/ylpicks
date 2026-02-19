@@ -74,7 +74,6 @@ def show(conn, cursor, username):
     user_picks = {}
     
     for tier_number in range(1, 7):
-        st.caption(f"Tier {tier_number}")
 
         # Get players for this tier
         cursor.execute("""
@@ -107,16 +106,16 @@ def show(conn, cursor, username):
                 choice_name = name
 
         choice_name = st.selectbox(
-            "",
+            f"Tier {tier_number}",
             [""] + list(player_options.keys()),
             index=(list(player_options.keys()).index(choice_name)+1 if choice_name else 0),
             key=f"pick_{tournament_id}_tier{tier_number}_{safe_key(username)}"
         )
+        st.write("")  # Add spacing
         
         user_picks[tier_number] = player_options.get(choice_name) if choice_name else None
 
     st.write("")
-    st.write("---")
     
     # Validation check
     missing_tiers = [tier for tier, pick in user_picks.items() if pick is None]
@@ -133,7 +132,7 @@ def show(conn, cursor, username):
         """, (username, tournament_id))
 
         
-    # Insert all new picks
+        # Insert all new picks
         for tier_number, player_id in user_picks.items():
             if player_id:  # Should always be true due to validation
                 # Create user_picks_id as concatenation
