@@ -20,8 +20,8 @@ st.markdown("""
     padding-top: 3.5rem;
 }
 
-/* Remove GitHub / Fork everywhere */
-header [href*="github.com"] {
+/* Hide GitHub / Fork everywhere (desktop + mobile) */
+[data-testid="stAppViewContainer"] a[href*="github.com"] {
     display: none !important;
 }
 
@@ -38,14 +38,6 @@ footer {
 
 </style>
 """, unsafe_allow_html=True)
-
-
-
-
-
-
-
-
 
 
 # ----------------------------
