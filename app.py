@@ -46,12 +46,13 @@ st.markdown("""
 
 st.markdown("""
 <style>
-/* Hide GitHub / Fork button only */
-a[href*="github.com"] {
+/* Hide GitHub/Fork button in header */
+[data-testid="stHeader"] a[href*="github.com"] {
     display: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 
 
