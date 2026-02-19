@@ -118,7 +118,7 @@ html = """
     display: flex;
     justify-content: space-between;
     padding: 3px 6px;
-    border-bottom: 1px solid #444;
+    border-bottom: .1px solid #B7CCBE;
 }
 .lb-name {
     text-align: left;
