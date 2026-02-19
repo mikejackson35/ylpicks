@@ -137,14 +137,14 @@ def show(conn, cursor, username):
         st.warning(f"⚠️ Still Missing Tier {', Tier '.join(map(str, missing_tiers))}")
     
     # Single save button
-    if st.button("💾 Save All Picks", type="primary", disabled=bool(missing_tiers)):
+    if st.button("💾 Save Picks", type="primary", disabled=bool(missing_tiers)):
         # Delete all existing picks for this tournament
         cursor.execute("""
             DELETE FROM user_picks
             WHERE username=%s AND tournament_id=%s
         """, (username, tournament_id))
 
-        
+        now = datetime.now(timezone.utc)
         # Insert all new picks
         for tier_number, player_id in user_picks.items():
             if player_id:  # Should always be true due to validation

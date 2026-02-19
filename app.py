@@ -151,9 +151,9 @@ st.sidebar.markdown(html, unsafe_allow_html=True)
 
 
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
-with st.sidebar.expander("Scoring Rules"):
+with st.sidebar.expander("Scoring"):
     st.markdown("""
-    **Each Week** <br>
+    **Week** <br>
     +1pt Tier Winner <br>
     +1pt Team Score <br>
     -1pt Missed Cut <br>
