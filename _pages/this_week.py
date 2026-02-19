@@ -9,12 +9,12 @@ def show(conn, cursor, api_key):
     now = datetime.now(timezone.utc)
     
     cursor.execute("""
-        SELECT tournament_id, name, start_time 
-        FROM tournaments 
-        WHERE start_time <= %s + INTERVAL '7 days'
-        ORDER BY start_time DESC
-        LIMIT 1
-    """, (now,))
+            SELECT tournament_id, name, start_time 
+            FROM tournaments 
+            WHERE start_time <= %s + INTERVAL '7 days'
+            ORDER BY start_time ASC
+            LIMIT 1
+        """, (now,))
     
     tournament = cursor.fetchone()
     
