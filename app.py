@@ -17,7 +17,7 @@ st.markdown("""
 
 /* --- Fix top spacing (prevents title from clipping) --- */
 .block-container {
-    padding-top: 3.5rem;
+    padding-top: 2.5rem;
 }
 
 /* --- Hide GitHub / Fork everywhere (desktop + mobile) --- */
