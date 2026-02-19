@@ -113,7 +113,7 @@ def show(conn, cursor, username):
         col1, col2 = st.columns([1, 4])
         
         with col1:
-            st.write("")  # Add vertical spacing to align with selectbox
+            # st.write("")  # Add vertical spacing to align with selectbox
             st.write(f"**Tier {tier_number}**")
         
         with col2:
@@ -134,7 +134,7 @@ def show(conn, cursor, username):
     missing_tiers = [tier for tier, pick in user_picks.items() if pick is None]
     
     if missing_tiers:
-        st.warning(f"⚠️ Please select players for all tiers. Missing: Tier {', Tier '.join(map(str, missing_tiers))}")
+        st.warning(f"⚠️ Still Missing Tier {', Tier '.join(map(str, missing_tiers))}")
     
     # Single save button
     if st.button("💾 Save All Picks", type="primary", disabled=bool(missing_tiers)):
