@@ -15,44 +15,30 @@ import _pages.make_picks as make_picks
 st.markdown("""
 <style>
 
-/* ---------- Sidebar Styling ---------- */
-section[data-testid="stSidebar"] label {
-    font-size: 40px !important;
-    font-weight: 700 !important;
+/* Fix top spacing so title doesn't clip */
+.block-container {
+    padding-top: 3.5rem;
 }
 
-section[data-testid="stSidebar"] input[type="radio"] {
-    transform: scale(1.3);
-}
-
-/* ---------- Remove DataFrame Hover Toolbars ---------- */
-[data-testid="stDataFrameToolbar"],
-[data-testid="stElementToolbar"] {
+/* Remove GitHub / Fork everywhere */
+header [href*="github.com"] {
     display: none !important;
 }
 
-/* ---------- Reduce Top Padding ---------- */
-# .block-container {
-#     padding-top: 0.5rem;
-# }
-
-/* ---------- Remove Header Buttons (keep hamburger) ---------- */
-header a[href*="github.com"] {
-    display: none !important;
-}
-
+/* Remove Share + Deploy */
 header button[aria-label="Share"],
 header button[aria-label="Deploy"] {
     display: none !important;
 }
 
-/* ---------- Remove Footer ---------- */
+/* Hide footer */
 footer {
-    display: none !important;
+    visibility: hidden;
 }
 
 </style>
 """, unsafe_allow_html=True)
+
 
 
 
