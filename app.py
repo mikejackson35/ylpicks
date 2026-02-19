@@ -44,14 +44,15 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown("""
+<style>
+/* Hide GitHub / Fork button only */
+a[href*="github.com"] {
+    display: none !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# st.markdown("""
-# <style>
-# [data-testid="stToolbar"] {
-#     display: none;
-# }
-# </style>
-# """, unsafe_allow_html=True)
 
 
 
