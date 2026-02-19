@@ -32,10 +32,10 @@ header button[aria-label="Deploy"] {
 }
             
 /* ---------- Remove DataFrame Hover Toolbars ---------- */
-# [data-testid="stDataFrameToolbar"],
-# [data-testid="stElementToolbar"] {
-#     display: none !important;
-# }
+[data-testid="stDataFrameToolbar"],
+[data-testid="stElementToolbar"] {
+    display: none !important;
+}
 
 /* --- Hide footer --- */
 footer {
