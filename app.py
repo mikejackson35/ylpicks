@@ -39,7 +39,7 @@ st.markdown("""
 st.markdown("""
 <style>
 .block-container {
-    padding-top: 0.25rem;
+    padding-top: 0.5rem;
 }
 </style>
 """, unsafe_allow_html=True)
