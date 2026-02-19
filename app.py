@@ -153,13 +153,14 @@ st.sidebar.markdown(html, unsafe_allow_html=True)
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
 with st.sidebar.expander("Scoring Rules"):
     st.markdown("""
-    EACH WEEK \n
+    **Each Week** <br>
     +1pt Tier Winner <br>
-    +1pt Team Low Score <br>
+    +1pt Team Score <br>
     -1pt Missed Cut <br>
     \n
-    $100 to winner after TOUR Championship
-    (from mj)  
+    **Season** <br>
+    $100 to winner \n
+    <small>note: must play all weeks to qualify 😭</small> 
     """, unsafe_allow_html=True)# text_alignment='center')
 
 

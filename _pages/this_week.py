@@ -24,7 +24,7 @@ def show(conn, cursor, api_key):
         return
     
     tournament_id = tournament["tournament_id"]
-    st.header(tournament["name"])
+    st.subheader(tournament["name"])
     
     st.write("")
 

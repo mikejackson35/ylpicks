@@ -43,34 +43,38 @@ def show(conn, cursor, username):
         st.warning("⏰ Picks are locked - tournament has started")
         st.write("")
         
-        # Show locked picks
+        # Show locked picks in 2-column layout
         for tier_number in range(1, 7):
-            st.caption(f"Tier {tier_number}")
+            col1, col2 = st.columns([1, 4])
             
-            cursor.execute("""
-                SELECT player_id FROM user_picks
-                WHERE username=%s AND tournament_id=%s AND tier_number=%s
-            """, (username, tournament_id, tier_number))
-            existing = cursor.fetchone()
+            with col1:
+                st.write(f"**Tier {tier_number}**")
             
-            if existing:
+            with col2:
                 cursor.execute("""
-                    SELECT p.player_id, p.name
-                    FROM weekly_tiers t
-                    JOIN players p ON CAST(p.player_id AS TEXT) = CAST(t.player_id AS TEXT)
-                    WHERE t.tournament_id=%s AND t.tier_number=%s
-                """, (tournament_id, tier_number))
-                players = cursor.fetchall()
-                player_options = {p["name"]: p["player_id"] for p in players}
+                    SELECT player_id FROM user_picks
+                    WHERE username=%s AND tournament_id=%s AND tier_number=%s
+                """, (username, tournament_id, tier_number))
+                existing = cursor.fetchone()
                 
-                locked_name = next((name for name, pid in player_options.items() if pid == existing["player_id"]), "Unknown")
-                st.info(f"Your locked pick: **{locked_name}**")
-            else:
-                st.warning("No pick submitted")
+                if existing:
+                    cursor.execute("""
+                        SELECT p.player_id, p.name
+                        FROM weekly_tiers t
+                        JOIN players p ON CAST(p.player_id AS TEXT) = CAST(t.player_id AS TEXT)
+                        WHERE t.tournament_id=%s AND t.tier_number=%s
+                    """, (tournament_id, tier_number))
+                    players = cursor.fetchall()
+                    player_options = {p["name"]: p["player_id"] for p in players}
+                    
+                    locked_name = next((name for name, pid in player_options.items() if pid == str(existing["player_id"])), "Unknown")
+                    st.info(f"**{locked_name}**")
+                else:
+                    st.warning("No pick submitted")
         
         return
 
-    # Tournament not locked - show selection form
+    # Tournament not locked - show selection form in 2-column layout
     user_picks = {}
     
     for tier_number in range(1, 7):
@@ -105,16 +109,25 @@ def show(conn, cursor, username):
             if pid == existing_pick:
                 choice_name = name
 
-        choice_name = st.selectbox(
-            f"Tier {tier_number}",
-            [""] + list(player_options.keys()),
-            index=(list(player_options.keys()).index(choice_name)+1 if choice_name else 0),
-            key=f"pick_{tournament_id}_tier{tier_number}_{safe_key(username)}"
-        )
-        st.write("")  # Add spacing
+        # 2-column layout: tier label + selectbox
+        col1, col2 = st.columns([1, 4])
+        
+        with col1:
+            st.write("")  # Add vertical spacing to align with selectbox
+            st.write(f"**Tier {tier_number}**")
+        
+        with col2:
+            choice_name = st.selectbox(
+                "",  # Empty label since tier number is in col1
+                [""] + list(player_options.keys()),
+                index=(list(player_options.keys()).index(choice_name)+1 if choice_name else 0),
+                key=f"pick_{tournament_id}_tier{tier_number}_{safe_key(username)}",
+                label_visibility="collapsed"  # Hide the empty label completely
+            )
         
         user_picks[tier_number] = player_options.get(choice_name) if choice_name else None
 
+    st.write("")
     st.write("")
     
     # Validation check
