@@ -11,10 +11,11 @@ def show(conn, cursor, api_key):
     cursor.execute("""
             SELECT tournament_id, name, start_time 
             FROM tournaments 
-            WHERE start_time <= %s + INTERVAL '7 days'
-            ORDER BY start_time ASC
+            WHERE start_time <= %s + INTERVAL '3 days'
+            AND start_time >= %s - INTERVAL '4 days'
+            ORDER BY start_time DESC
             LIMIT 1
-        """, (now,))
+        """, (now, now))
     
     tournament = cursor.fetchone()
     
