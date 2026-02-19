@@ -32,9 +32,9 @@ section[data-testid="stSidebar"] input[type="radio"] {
 }
 
 /* ---------- Reduce Top Padding ---------- */
-.block-container {
-    padding-top: 0.25rem;
-}
+# .block-container {
+#     padding-top: 0.5rem;
+# }
 
 /* ---------- Remove Header Buttons (keep hamburger) ---------- */
 header a[href*="github.com"] {
