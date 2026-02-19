@@ -110,7 +110,7 @@ def show(conn, cursor, username):
                 choice_name = name
 
         # 2-column layout: tier label + selectbox
-        col1, col2 = st.columns([1, 4])
+        col1, col2 = st.columns([1, 6])
         
         with col1:
             # st.write("")  # Add vertical spacing to align with selectbox
