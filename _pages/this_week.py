@@ -119,7 +119,7 @@ def show(conn, cursor, api_key):
         name_to_id = {}
         cut_status = {}
 
-    # Calculate cumulative scores for each user
+# Calculate cumulative scores for each user
     user_scores = {}
     numeric_scores = {}
 
@@ -127,23 +127,30 @@ def show(conn, cursor, api_key):
         username = user["username"]
         user_name = user["name"]
         total_score = 0
+        valid_scores = 0  # Track how many valid scores we have
 
         for tier_number in range(1, 7):
             pick_id = pick_map[username][tier_number]
             if pick_id and str(pick_id) in score_lookup:
-                total_score += score_lookup[str(pick_id)]
+                score = score_lookup[str(pick_id)]
+                if score != 999:  # Only count real scores, not placeholder
+                    total_score += score
+                    valid_scores += 1
 
-        numeric_scores[user_name] = total_score
-
-        if total_score == 0:
-            score_display = "E"
-        elif total_score < 0:
-            score_display = str(total_score)
+        # Only show score if we have valid scores, otherwise show "E"
+        if valid_scores == 0:
+            numeric_scores[user_name] = 0
+            user_scores[user_name] = "E"
         else:
-            score_display = f"+{total_score}"
+            numeric_scores[user_name] = total_score
+            if total_score == 0:
+                score_display = "E"
+            elif total_score < 0:
+                score_display = str(total_score)
+            else:
+                score_display = f"+{total_score}"
+            user_scores[user_name] = score_display
 
-        # user_scores[user_name] = score_display
-        user_scores[user_name] = "E"
     # Find user(s) with best score
     if numeric_scores:
         best_score = min(numeric_scores.values())
@@ -279,6 +286,12 @@ def show(conn, cursor, api_key):
     if leaderboard.empty:
         st.info("🏌️ Live leaderboard will appear once the tournament begins")
         return
+    
+    # Check if scores are valid (not all dashes/empty)
+    valid_scores = leaderboard["Score"].apply(lambda x: x not in ["-", "", None, "nan"]).any()
+    if not valid_scores:
+        st.info("🏌️ Live leaderboard will appear once the tournament begins")
+        return
 
     # Create player_id to tier lookup before dropping PlayerID
     player_tier_map = {}
@@ -326,11 +339,11 @@ def show(conn, cursor, api_key):
         .set_properties(**{'font-size': '12px'})
     )
 
-    # st.dataframe(
-    #     styled_leaderboard_df,
-    #     width="stretch",
-    #     height=500,
-    #     hide_index=True
-    # )
+    st.dataframe(
+        styled_leaderboard_df,
+        width="stretch",
+        height=500,
+        hide_index=True
+    )
 
-    st.write("Leaderboard will display when tournament begins")
+    # st.write("Leaderboard will display when tournament begins")
