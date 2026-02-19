@@ -160,7 +160,7 @@ with st.sidebar.expander("Scoring Rules"):
     \n
     **Season** <br>
     $100 to winner \n
-    <small>note: must play all weeks to qualify 😭</small> 
+    <small>NOTE: must play all weeks to qualify </small> 😭😭😭😭
     """, unsafe_allow_html=True)# text_alignment='center')
 
 
