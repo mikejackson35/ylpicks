@@ -113,9 +113,8 @@ def show(conn, cursor, username):
         col1, col2 = st.columns([1, 6])
         
         with col1:
-            st.write("")
             st.write(f"**Tier {tier_number}**")
-            st.write("")  # Add vertical spacing to align with selectbox
+            st.write("")
         
         with col2:
             choice_name = st.selectbox(
@@ -125,7 +124,6 @@ def show(conn, cursor, username):
                 key=f"pick_{tournament_id}_tier{tier_number}_{safe_key(username)}",
                 label_visibility="collapsed"  # Hide the empty label completely
             )
-            st.write("")  # Add vertical spacing to align with selectbox
         
         user_picks[tier_number] = player_options.get(choice_name) if choice_name else None
 
