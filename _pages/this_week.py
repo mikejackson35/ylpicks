@@ -349,7 +349,7 @@ def show(conn, cursor, api_key):
         .set_properties(**{'text-align': 'center', 'font-size': '12px'}, subset=["Score"])
         .set_properties(**{'font-size': '12px'})
     )
-
+    st.write("🏌️ Live Leaderboard")
     st.dataframe(
         styled_leaderboard_df,
         width="stretch",
