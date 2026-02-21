@@ -232,15 +232,25 @@ def show(conn, cursor, api_key):
                         {'selector': 'th.col_heading', 'props': [('font-size', '12px')]}
                     ]))
 
-# Column config WITHOUT trophy in headers
+    # Column config WITHOUT trophy in headers
     column_config = {}
     for user in users:
         user_name = user["name"]
-        column_config[user_name] = st.column_config.TextColumn(user_name, width="small")
+        column_config[user_name] = st.column_config.TextColumn(user_name, width="content")
 
-    column_config["Team Score"] = st.column_config.TextColumn("Team Score", width="small")
+    column_config["Team Score"] = st.column_config.TextColumn("Team Score", width="content")
     for tier_number in range(1, 7):
-        column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="small")
+        column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="content")
+    
+    # Column config WITHOUT trophy in headers
+    # column_config = {}
+    # for user in users:
+    #     user_name = user["name"]
+    #     column_config[user_name] = st.column_config.TextColumn(user_name, width="small")
+
+    # column_config["Team Score"] = st.column_config.TextColumn("Team Score", width="small")
+    # for tier_number in range(1, 7):
+    #     column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="small")
 
     st.dataframe(
         styled_picks_df,
