@@ -223,52 +223,6 @@ def show(conn, cursor, api_key):
         
         return styles
     
-    ###
-# Style function to highlight tier leaders (bold) and missed cuts (strikethrough)
-    # def highlight_tier_leaders(s):
-    #     if s.name == "Team Score":
-    #         return [''] * len(s)
-
-    #     tier_scores = {}
-
-    #     for user_name in s.index:
-    #         player_name = s[user_name]
-    #         if player_name == "🔒" or player_name not in name_to_id:
-    #             continue
-
-    #         player_id = name_to_id[player_name]
-    #         if player_id in score_lookup:
-    #             tier_scores[user_name] = score_lookup[player_id]
-
-    #     if not tier_scores:
-    #         return [''] * len(s)
-
-    #     best_score = min(tier_scores.values())
-
-    #     styles = []
-    #     for user_name in s.index:
-    #         player_name = s[user_name]
-            
-    #         # Check if tier leader (bold has priority)
-    #         is_leader = (player_name != "🔒" and 
-    #                     player_name in name_to_id and 
-    #                     name_to_id[player_name] in score_lookup and 
-    #                     score_lookup[name_to_id[player_name]] == best_score)
-            
-    #         if is_leader:
-    #             styles.append('font-weight: bold')  # Bold for leader
-    #         elif player_name in name_to_id:
-    #             # Check for missed cut (strikethrough)
-    #             player_id = name_to_id[player_name]
-    #             if cut_status.get(player_id, False):
-    #                 styles.append('text-decoration: line-through')  # Strikethrough for missed cut
-    #             else:
-    #                 styles.append('')
-    #         else:
-    #             styles.append('')
-        
-    #     return styles
-    ###
 
     # Apply styling
     styled_picks_df = (transposed_with_score.style
@@ -360,14 +314,23 @@ def show(conn, cursor, api_key):
     df_display = leaderboard.reset_index(drop=True)
 
     # Define light colors for each tier
+    # tier_colors = {
+    #     1: "#FFE6E6",  # Light red
+    #     2: "#FFF4E6",  # Light orange
+    #     3: "#FFFBE6",  # Light yellow
+    #     4: "#E6F7FF",  # Light blue
+    #     5: "#F0E6FF",  # Light purple
+    #     6: "#E6FFE6"   # Light green
+    # }
+
     tier_colors = {
-        1: "#FFE6E6",  # Light red
-        2: "#FFF4E6",  # Light orange
-        3: "#FFFBE6",  # Light yellow
-        4: "#E6F7FF",  # Light blue
-        5: "#F0E6FF",  # Light purple
-        6: "#E6FFE6"   # Light green
-    }
+            1: "#FFB3BA",  # Soft red
+            2: "#FFDFBA",  # Soft orange
+            3: "#FFFFBA",  # Soft yellow
+            4: "#BAFFC9",  # Soft green
+            5: "#BAE1FF",  # Soft blue
+            6: "#E0BBE4"   # Soft lavender
+        }
 
     # Apply style: tier colors, green scores, smaller font
     def highlight_by_tier(row):
