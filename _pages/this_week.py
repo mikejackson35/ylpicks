@@ -322,15 +322,15 @@ def show(conn, cursor, api_key):
     #     5: "#F0E6FF",  # Light purple
     #     6: "#E6FFE6"   # Light green
     # }
-
+    
     tier_colors = {
-            1: "#FFB3BA",  # Soft red
-            2: "#FFDFBA",  # Soft orange
-            3: "#FFFFBA",  # Soft yellow
-            4: "#BAFFC9",  # Soft green
-            5: "#BAE1FF",  # Soft blue
-            6: "#E0BBE4"   # Soft lavender
-        }
+        1: "#FFB3BA",  # Soft red
+        2: "#D3D3D3",  # Grey
+        3: "#FFFFBA",  # Soft yellow
+        4: "#BAFFC9",  # Soft green
+        5: "#BAE1FF",  # Soft blue
+        6: "#E0BBE4"   # Soft lavender
+    }
 
     # Apply style: tier colors, green scores, smaller font
     def highlight_by_tier(row):
