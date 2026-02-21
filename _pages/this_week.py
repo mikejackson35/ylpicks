@@ -179,52 +179,6 @@ def show(conn, cursor, api_key):
     transposed_with_score = pd.concat([team_score_df, transposed_df])
 
     # Style function to highlight tier leaders (green) and missed cuts (red)
-    # def highlight_tier_leaders(s):
-    #     if s.name == "Team Score":
-    #         return [''] * len(s)
-
-    #     tier_scores = {}
-
-    #     for user_name in s.index:
-    #         player_name = s[user_name]
-    #         if player_name == "🔒" or player_name not in name_to_id:
-    #             continue
-
-    #         player_id = name_to_id[player_name]
-    #         if player_id in score_lookup:
-    #             tier_scores[user_name] = score_lookup[player_id]
-
-    #     if not tier_scores:
-    #         return [''] * len(s)
-
-    #     best_score = min(tier_scores.values())
-
-    #     styles = []
-    #     for user_name in s.index:
-    #         player_name = s[user_name]
-            
-    #         # Check if tier leader (green has priority)
-    #         is_leader = (player_name != "🔒" and 
-    #                     player_name in name_to_id and 
-    #                     name_to_id[player_name] in score_lookup and 
-    #                     score_lookup[name_to_id[player_name]] == best_score)
-            
-    #         if is_leader:
-    #             styles.append('background-color: #c9f7d3')  # Green for leader
-    #         elif player_name in name_to_id:
-    #             # Check for missed cut (red)
-    #             player_id = name_to_id[player_name]
-    #             if cut_status.get(player_id, False):
-    #                 styles.append('background-color: #ffcccc')  # Light red for missed cut
-    #             else:
-    #                 styles.append('')
-    #         else:
-    #             styles.append('')
-        
-    #     return styles
-    
-    ###
-# Style function to highlight tier leaders (bold) and missed cuts (strikethrough)
     def highlight_tier_leaders(s):
         if s.name == "Team Score":
             return [''] * len(s)
@@ -249,25 +203,71 @@ def show(conn, cursor, api_key):
         for user_name in s.index:
             player_name = s[user_name]
             
-            # Check if tier leader (bold has priority)
+            # Check if tier leader (green has priority)
             is_leader = (player_name != "🔒" and 
                         player_name in name_to_id and 
                         name_to_id[player_name] in score_lookup and 
                         score_lookup[name_to_id[player_name]] == best_score)
             
             if is_leader:
-                styles.append('font-weight: bold')  # Bold for leader
+                styles.append('background-color: #c9f7d3')  # Green for leader
             elif player_name in name_to_id:
-                # Check for missed cut (strikethrough)
+                # Check for missed cut (red)
                 player_id = name_to_id[player_name]
                 if cut_status.get(player_id, False):
-                    styles.append('text-decoration: line-through')  # Strikethrough for missed cut
+                    styles.append('background-color: #ffcccc')  # Light red for missed cut
                 else:
                     styles.append('')
             else:
                 styles.append('')
         
         return styles
+    
+    ###
+# Style function to highlight tier leaders (bold) and missed cuts (strikethrough)
+    # def highlight_tier_leaders(s):
+    #     if s.name == "Team Score":
+    #         return [''] * len(s)
+
+    #     tier_scores = {}
+
+    #     for user_name in s.index:
+    #         player_name = s[user_name]
+    #         if player_name == "🔒" or player_name not in name_to_id:
+    #             continue
+
+    #         player_id = name_to_id[player_name]
+    #         if player_id in score_lookup:
+    #             tier_scores[user_name] = score_lookup[player_id]
+
+    #     if not tier_scores:
+    #         return [''] * len(s)
+
+    #     best_score = min(tier_scores.values())
+
+    #     styles = []
+    #     for user_name in s.index:
+    #         player_name = s[user_name]
+            
+    #         # Check if tier leader (bold has priority)
+    #         is_leader = (player_name != "🔒" and 
+    #                     player_name in name_to_id and 
+    #                     name_to_id[player_name] in score_lookup and 
+    #                     score_lookup[name_to_id[player_name]] == best_score)
+            
+    #         if is_leader:
+    #             styles.append('font-weight: bold')  # Bold for leader
+    #         elif player_name in name_to_id:
+    #             # Check for missed cut (strikethrough)
+    #             player_id = name_to_id[player_name]
+    #             if cut_status.get(player_id, False):
+    #                 styles.append('text-decoration: line-through')  # Strikethrough for missed cut
+    #             else:
+    #                 styles.append('')
+    #         else:
+    #             styles.append('')
+        
+    #     return styles
     ###
 
     # Apply styling
