@@ -41,15 +41,6 @@ header button[aria-label="Deploy"] {
 footer {
     visibility: hidden;
 }
-            
-/* Rotate column headers on mobile */
-@media (max-width: 768px) {
-    section[data-testid="stDataFrame"] th {
-        writing-mode: vertical-rl;
-        text-orientation: mixed;
-        white-space: nowrap;
-    }
-}
 
 </style>
 """, unsafe_allow_html=True)
