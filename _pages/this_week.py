@@ -162,11 +162,17 @@ def show(conn, cursor, api_key):
     # Add team score row to the transposed dataframe
     transposed_df = df.set_index('User').T
 
-    # Create a new row for team scores
+    # Create a new row for team scores WITH trophy for leaders
     team_score_row = {}
     for user in users:
         user_name = user["name"]
-        team_score_row[user_name] = user_scores.get(user_name, "E")
+        score_display = user_scores.get(user_name, "E")
+        
+        # Add trophy if this user is leading
+        if user_name in leaders and score_display != "E":
+            team_score_row[user_name] = f"🏆 {score_display}"
+        else:
+            team_score_row[user_name] = score_display
 
     # Insert team score row at the top
     team_score_df = pd.DataFrame([team_score_row], index=["Team Score"])
@@ -226,21 +232,15 @@ def show(conn, cursor, api_key):
                         {'selector': 'th.col_heading', 'props': [('font-size', '12px')]}
                     ]))
 
-    # Column config with trophy for leaders
+# Column config WITHOUT trophy in headers
     column_config = {}
     for user in users:
         user_name = user["name"]
+        column_config[user_name] = st.column_config.TextColumn(user_name, width="small")
 
-        if user_name in leaders and user_scores.get(user_name, "E") != "E":
-            header_text = f"🏆 {user_name}"
-        else:
-            header_text = user_name
-
-        column_config[user_name] = st.column_config.TextColumn(header_text, width="content")
-
-    column_config["Team Score"] = st.column_config.TextColumn("Team Score", width="content")
+    column_config["Team Score"] = st.column_config.TextColumn("Team Score", width="small")
     for tier_number in range(1, 7):
-        column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="content")
+        column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="small")
 
     st.dataframe(
         styled_picks_df,
