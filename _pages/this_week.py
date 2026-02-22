@@ -339,6 +339,8 @@ def show(conn, cursor, api_key):
             pts_display = str(pts)
         
         points_html += f'<div style="flex: 1 1 22%; font-size: 18px; text-align: center;"><b>{pts_display}</b></div>'
+    points_html += '</div>'
+    st.markdown(points_html, unsafe_allow_html=True)
 
     st.dataframe(
         styled_picks_df,
@@ -347,9 +349,6 @@ def show(conn, cursor, api_key):
         hide_index=True,
         column_config=column_config
     )
-
-    points_html += '</div>'
-    st.markdown(points_html, unsafe_allow_html=True)
 
     st.divider()
 
