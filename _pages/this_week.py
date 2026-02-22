@@ -324,9 +324,9 @@ def show(conn, cursor, api_key):
     for tier_number in range(1, 7):
         column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="small")
 
-# Display weekly points above the table
-    points_parts = []
-    for user in users:
+# Display weekly points above the table in 4 columns
+    cols = st.columns(4)
+    for idx, user in enumerate(users):
         user_name = user["name"]
         pts = weekly_points.get(user_name, 0)
         
@@ -337,12 +337,10 @@ def show(conn, cursor, api_key):
         else:
             pts_display = str(pts)
         
-        # points_parts.append(f"**{user_name}**: {pts_display}")
-        points_parts.append(f"**{pts_display}**")
+        with cols[idx % 4]:  # Distributes users across 4 columns
+            st.markdown(f"**{pts_display}**")
     
-    points_line = " &nbsp;&nbsp;|&nbsp;&nbsp; ".join(points_parts)
-    st.markdown(f"{points_line}", unsafe_allow_html=True)
-    st.write("")
+    # st.write("")
 
     st.dataframe(
         styled_picks_df,
