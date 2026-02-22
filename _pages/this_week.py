@@ -159,7 +159,7 @@ def show(conn, cursor, api_key):
     else:
         leaders = []
 
-    # Calculate weekly points for each user
+# Calculate weekly points for each user
     weekly_points = {}
     for user in users:
         username = user["username"]
@@ -209,11 +209,11 @@ def show(conn, cursor, api_key):
         else:
             team_score_row[user_name] = score_display
 
-    # Insert team score row at the top
+    # Insert team score row at the bottom
     team_score_df = pd.DataFrame([team_score_row], index=["Team Score"])
     transposed_with_score = pd.concat([team_score_df, transposed_df])
 
-# Modify cell values to add X for missed cuts (but NOT if they won tier)
+    # Modify cell values to add X for missed cuts (but NOT if they won tier)
     def add_missed_cut_symbol(s):
         if s.name == "Team Score":
             return s  # Don't modify team score row
