@@ -350,8 +350,6 @@ def show(conn, cursor, api_key):
         column_config=column_config
     )
 
-    st.divider()
-
     st.write("")
 
     # Get picked players for this tournament
