@@ -152,12 +152,47 @@ def show(conn, cursor, api_key):
                 score_display = f"+{total_score}"
             user_scores[user_name] = score_display
 
-    # Find user(s) with best score
+# Find user(s) with best score
     if numeric_scores:
         best_score = min(numeric_scores.values())
         leaders = [name for name, score in numeric_scores.items() if score == best_score]
     else:
         leaders = []
+
+    # Calculate weekly points for each user
+    weekly_points = {}
+    for user in users:
+        username = user["username"]
+        user_name = user["name"]
+        points = 0
+        
+        # Count tier wins
+        for tier_number in range(1, 7):
+            pick_id = pick_map[username][tier_number]
+            if pick_id and str(pick_id) in score_lookup:
+                player_id = str(pick_id)
+                
+                # Find tier leader
+                tier_picks = {}
+                for u in usernames:
+                    u_pick = pick_map[u].get(tier_number)
+                    if u_pick and str(u_pick) in score_lookup:
+                        tier_picks[u] = score_lookup[str(u_pick)]
+                
+                if tier_picks:
+                    tier_best = min(tier_picks.values())
+                    if score_lookup[player_id] == tier_best:
+                        points += 1  # +1 for tier win
+                
+                # Check for missed cut
+                if cut_status.get(player_id, False):
+                    points -= 1  # -1 for missed cut
+        
+        # Check for best overall team score
+        if user_name in leaders and numeric_scores[user_name] != 0:
+            points += 1  # +1 for best team score
+        
+        weekly_points[user_name] = points
 
     # Add team score row to the transposed dataframe
     transposed_df = df.set_index('User').T
@@ -269,55 +304,6 @@ def show(conn, cursor, api_key):
         
         return styles
     
-    # Style function to highlight tier leaders (green) and missed cuts (red)
-    # def highlight_tier_leaders(s):
-    #     if s.name == "Team Score":
-    #         return [''] * len(s)
-
-    #     tier_scores = {}
-
-    #     for user_name in s.index:
-    #         player_name = s[user_name]
-    #         if player_name == "🔒" or player_name not in name_to_id:
-    #             continue
-
-    #         player_id = name_to_id[player_name]
-    #         if player_id in score_lookup:
-    #             tier_scores[user_name] = score_lookup[player_id]
-
-    #     if not tier_scores:
-    #         return [''] * len(s)
-
-    #     best_score = min(tier_scores.values())
-
-    #     styles = []
-    #     for user_name in s.index:
-    #         player_name = s[user_name]
-            
-    #         # Check if tier leader
-    #         is_leader = (player_name != "🔒" and 
-    #                     player_name in name_to_id and 
-    #                     name_to_id[player_name] in score_lookup and 
-    #                     score_lookup[name_to_id[player_name]] == best_score)
-            
-    #         # Check for missed cut
-    #         is_missed_cut = False
-    #         if player_name in name_to_id:
-    #             player_id = name_to_id[player_name]
-    #             is_missed_cut = cut_status.get(player_id, False)
-            
-    #         # If BOTH leader AND missed cut, show neutral (they cancel out)
-    #         if is_leader and is_missed_cut:
-    #             styles.append('')  # Neutral - no color
-    #         elif is_leader:
-    #             styles.append('background-color: #c9f7d3')  # Green for leader only
-    #         elif is_missed_cut:
-    #             styles.append('background-color: #ffcccc')  # Red for missed cut only
-    #         else:
-    #             styles.append('')
-        
-    #     return styles
-    
 
     # Apply styling
     styled_picks_df = (transposed_with_score.style
@@ -337,6 +323,33 @@ def show(conn, cursor, api_key):
     column_config["Team Score"] = st.column_config.TextColumn("Team Score", width="small")
     for tier_number in range(1, 7):
         column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="small")
+
+# Display weekly points above the table
+    points_parts = []
+    for user in users:
+        user_name = user["name"]
+        pts = weekly_points.get(user_name, 0)
+        
+        if pts > 0:
+            pts_display = f"+{pts}"
+        elif pts == 0:
+            pts_display = "E"
+        else:
+            pts_display = str(pts)
+        
+        points_parts.append(f"**{user_name}**: {pts_display}")
+    
+    points_line = " &nbsp;&nbsp;|&nbsp;&nbsp; ".join(points_parts)
+    st.markdown(f"{points_line}", unsafe_allow_html=True)
+    st.write("")
+
+    st.dataframe(
+        styled_picks_df,
+        width="stretch",
+        height='content',
+        hide_index=True,
+        column_config=column_config
+    )
 
     st.dataframe(
         styled_picks_df,
