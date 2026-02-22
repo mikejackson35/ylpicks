@@ -334,7 +334,7 @@ def show(conn, cursor, api_key):
         if pts > 0:
             pts_display = f"+{pts}"
         elif pts == 0:
-            pts_display = "E"
+            pts_display = str(0)
         else:
             pts_display = str(pts)
         
