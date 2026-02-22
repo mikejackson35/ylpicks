@@ -337,7 +337,8 @@ def show(conn, cursor, api_key):
         else:
             pts_display = str(pts)
         
-        points_parts.append(f"**{user_name}**: {pts_display}")
+        # points_parts.append(f"**{user_name}**: {pts_display}")
+        points_parts.append(f"**{pts_display}**")
     
     points_line = " &nbsp;&nbsp;|&nbsp;&nbsp; ".join(points_parts)
     st.markdown(f"{points_line}", unsafe_allow_html=True)
