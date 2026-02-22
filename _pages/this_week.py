@@ -24,7 +24,7 @@ def show(conn, cursor, api_key):
         return
     
     tournament_id = tournament["tournament_id"]
-    st.subheader(tournament["name"])
+    st.write(f"**{tournament['name']}**")
     
     st.write("")
 
@@ -339,10 +339,6 @@ def show(conn, cursor, api_key):
             pts_display = str(pts)
         
         points_html += f'<div style="flex: 1 1 22%; font-size: 22px; text-align: center;"><b>{pts_display}</b></div>'
-    
-    # points_html += '</div>'
-    # st.markdown(points_html, unsafe_allow_html=True)
-    # st.write("")
 
     st.dataframe(
         styled_picks_df,
