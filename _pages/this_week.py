@@ -350,14 +350,6 @@ def show(conn, cursor, api_key):
         column_config=column_config
     )
 
-    st.dataframe(
-        styled_picks_df,
-        width="stretch",
-        height='content',
-        hide_index=True,
-        column_config=column_config
-    )
-
     st.write("")
     st.write("")
 
