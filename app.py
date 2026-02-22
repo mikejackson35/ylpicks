@@ -97,19 +97,25 @@ if auth_status is not True:
 # ----------------------------
 from datetime import timedelta
 
-# Get tournaments that ended 4+ days ago but haven't been finalized
+# Get tournaments that ended (start_time + 4 days 20 hours) but haven't been finalized
+tournament_end_offset = timedelta(days=4, hours=20)
+now = datetime.now(timezone.utc)
+
 cursor.execute("""
     SELECT t.tournament_id, t.name, t.start_time
     FROM tournaments t
-    WHERE t.start_time + INTERVAL '4 days' < %s
-    AND NOT EXISTS (
+    WHERE NOT EXISTS (
         SELECT 1 FROM results r 
         WHERE r.tournament_id = t.tournament_id 
         LIMIT 1
     )
-""", (datetime.now(timezone.utc),))
+""")
 
-unfinalized_tournaments = cursor.fetchall()
+all_tournaments = cursor.fetchall()
+unfinalized_tournaments = [
+    t for t in all_tournaments 
+    if t["start_time"] + tournament_end_offset < now
+]
 
 for tournament in unfinalized_tournaments:
     tournament_id = tournament["tournament_id"]
