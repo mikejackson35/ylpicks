@@ -338,7 +338,7 @@ def show(conn, cursor, api_key):
         else:
             pts_display = str(pts)
         
-        points_html += f'<div style="flex: 1 1 22%; font-size: 22px; text-align: center;"><b>{pts_display}</b></div>'
+        points_html += f'<div style="flex: 1 1 22%; font-size: 18px; text-align: center;"><b>{pts_display}</b></div>'
 
     st.dataframe(
         styled_picks_df,
@@ -350,11 +350,9 @@ def show(conn, cursor, api_key):
 
     points_html += '</div>'
     st.markdown(points_html, unsafe_allow_html=True)
-    st.write("")
 
     st.divider()
 
-    st.write("")
     st.write("")
 
     # Get picked players for this tournament
@@ -435,14 +433,10 @@ def show(conn, cursor, api_key):
     styled_leaderboard_df = (
         df_display.style
         .apply(highlight_by_tier, axis=1)
-        # .applymap(
-        #     lambda x: "color: green" if isinstance(x, str) and x.startswith("-") else "",
-        #     subset=["Score"]
-        # )
         .set_properties(**{'text-align': 'center', 'font-size': '12px'}, subset=["Score"])
         .set_properties(**{'font-size': '12px'})
     )
-    st.write("🏌️ Live Leaderboard")
+    # st.write("🏌️ Live Leaderboard")
     st.dataframe(
         styled_leaderboard_df,
         width="stretch",
