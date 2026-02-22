@@ -356,6 +356,8 @@ def show(conn, cursor, api_key):
     st.markdown(points_html, unsafe_allow_html=True)
     st.write("")
 
+    st.divider()
+
     st.write("")
     st.write("")
 
