@@ -178,7 +178,52 @@ def show(conn, cursor, api_key):
     team_score_df = pd.DataFrame([team_score_row], index=["Team Score"])
     transposed_with_score = pd.concat([team_score_df, transposed_df])
 
-# Style function to highlight tier leaders (bold+italic) and missed cuts (strikethrough)
+# Modify cell values to add X for missed cuts (but NOT if they won tier)
+    def add_missed_cut_symbol(s):
+        if s.name == "Team Score":
+            return s  # Don't modify team score row
+        
+        # First find tier leaders
+        tier_scores = {}
+        for user_name in s.index:
+            player_name = s[user_name]
+            if player_name == "🔒" or player_name not in name_to_id:
+                continue
+            player_id = name_to_id[player_name]
+            if player_id in score_lookup:
+                tier_scores[user_name] = score_lookup[player_id]
+        
+        best_score = min(tier_scores.values()) if tier_scores else None
+        
+        modified_values = []
+        for user_name in s.index:
+            player_name = s[user_name]
+            
+            if player_name == "🔒" or player_name not in name_to_id:
+                modified_values.append(player_name)
+                continue
+            
+            player_id = name_to_id[player_name]
+            
+            # Check if tier leader
+            is_leader = (player_id in score_lookup and 
+                        score_lookup[player_id] == best_score)
+            
+            # Check for missed cut
+            is_missed_cut = cut_status.get(player_id, False)
+            
+            # Only add X if missed cut AND not tier leader
+            if is_missed_cut and not is_leader:
+                modified_values.append(f"❌ {player_name}")
+            else:
+                modified_values.append(player_name)
+        
+        return modified_values
+    
+    # Apply symbols to the dataframe BEFORE styling
+    transposed_with_score = transposed_with_score.apply(add_missed_cut_symbol, axis=1)
+    
+    # Style function to bold tier leaders only (but NOT if they also missed cut)
     def highlight_tier_leaders(s):
         if s.name == "Team Score":
             return [''] * len(s)
@@ -186,7 +231,7 @@ def show(conn, cursor, api_key):
         tier_scores = {}
 
         for user_name in s.index:
-            player_name = s[user_name]
+            player_name = str(s[user_name]).replace("❌ ", "")  # Remove X to get original name
             if player_name == "🔒" or player_name not in name_to_id:
                 continue
 
@@ -201,7 +246,8 @@ def show(conn, cursor, api_key):
 
         styles = []
         for user_name in s.index:
-            player_name = s[user_name]
+            cell_value = str(s[user_name])
+            player_name = cell_value.replace("❌ ", "")
             
             # Check if tier leader
             is_leader = (player_name != "🔒" and 
@@ -209,19 +255,15 @@ def show(conn, cursor, api_key):
                         name_to_id[player_name] in score_lookup and 
                         score_lookup[name_to_id[player_name]] == best_score)
             
-            # Check for missed cut
-            is_missed_cut = False
+            # Check if this player also missed cut (look up in cut_status directly)
+            player_missed_cut = False
             if player_name in name_to_id:
                 player_id = name_to_id[player_name]
-                is_missed_cut = cut_status.get(player_id, False)
+                player_missed_cut = cut_status.get(player_id, False)
             
-            # If BOTH leader AND missed cut, show neutral
-            if is_leader and is_missed_cut:
-                styles.append('')
-            elif is_leader:
-                styles.append('font-weight: bold; font-style: italic')  # Bold + Italic for leader
-            elif is_missed_cut:
-                styles.append('text-decoration: line-through')  # Strikethrough for missed cut
+            # Only bold if leader AND didn't miss cut
+            if is_leader and not player_missed_cut:
+                styles.append('font-weight: bold')
             else:
                 styles.append('')
         
