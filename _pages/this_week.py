@@ -178,66 +178,53 @@ def show(conn, cursor, api_key):
     team_score_df = pd.DataFrame([team_score_row], index=["Team Score"])
     transposed_with_score = pd.concat([team_score_df, transposed_df])
 
-# Modify cell values to add symbols for leaders and missed cuts
-    def add_symbols_to_picks(s):
+# Style function to highlight tier leaders (bold+italic) and missed cuts (strikethrough)
+    def highlight_tier_leaders(s):
         if s.name == "Team Score":
-            return s  # Don't modify team score row
-        
+            return [''] * len(s)
+
         tier_scores = {}
+
         for user_name in s.index:
             player_name = s[user_name]
             if player_name == "🔒" or player_name not in name_to_id:
                 continue
+
             player_id = name_to_id[player_name]
             if player_id in score_lookup:
                 tier_scores[user_name] = score_lookup[player_id]
-        
+
         if not tier_scores:
-            return s
-        
+            return [''] * len(s)
+
         best_score = min(tier_scores.values())
-        
-        modified_values = []
+
+        styles = []
         for user_name in s.index:
             player_name = s[user_name]
             
+            # Check if tier leader
             is_leader = (player_name != "🔒" and 
                         player_name in name_to_id and 
                         name_to_id[player_name] in score_lookup and 
                         score_lookup[name_to_id[player_name]] == best_score)
             
+            # Check for missed cut
             is_missed_cut = False
             if player_name in name_to_id:
                 player_id = name_to_id[player_name]
                 is_missed_cut = cut_status.get(player_id, False)
             
-            # Add symbols to the actual cell content
+            # If BOTH leader AND missed cut, show neutral
             if is_leader and is_missed_cut:
-                modified_values.append(player_name)  # Neutral
+                styles.append('')
             elif is_leader:
-                modified_values.append(f"⭐ {player_name}")  # Star for leader
+                styles.append('font-weight: bold; font-style: italic')  # Bold + Italic for leader
             elif is_missed_cut:
-                modified_values.append(f"❌ {player_name}")  # X for missed cut
-            else:
-                modified_values.append(player_name)
-        
-        return modified_values
-    
-    # Apply symbols to the dataframe BEFORE styling
-    transposed_with_score = transposed_with_score.apply(add_symbols_to_picks, axis=1)
-    
-    # Then apply bold styling only (since that works)
-    def highlight_tier_leaders(s):
-        if s.name == "Team Score":
-            return [''] * len(s)
-        
-        # Just make leaders bold (they already have stars)
-        styles = []
-        for value in s:
-            if "⭐" in str(value):
-                styles.append('font-weight: bold')
+                styles.append('text-decoration: line-through')  # Strikethrough for missed cut
             else:
                 styles.append('')
+        
         return styles
     
     # Style function to highlight tier leaders (green) and missed cuts (red)
