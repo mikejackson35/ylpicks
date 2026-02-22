@@ -14,12 +14,13 @@ def show(conn, cursor, username):
     now = datetime.now(timezone.utc)
     
     cursor.execute("""
-        SELECT tournament_id, name, start_time 
-        FROM tournaments 
-        WHERE start_time >= %s - INTERVAL '1 day'
-        ORDER BY start_time ASC
-        LIMIT 1
-    """, (now,))
+            SELECT tournament_id, name, start_time 
+            FROM tournaments 
+            WHERE start_time <= %s + INTERVAL '3 days'
+            AND start_time >= %s - INTERVAL '4 days'
+            ORDER BY start_time DESC
+            LIMIT 1
+        """, (now, now))
     
     tournament = cursor.fetchone()
     

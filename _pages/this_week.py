@@ -178,7 +178,7 @@ def show(conn, cursor, api_key):
     team_score_df = pd.DataFrame([team_score_row], index=["Team Score"])
     transposed_with_score = pd.concat([team_score_df, transposed_df])
 
-    # Style function to highlight tier leaders (green) and missed cuts (red)
+# Style function to highlight tier leaders (bold+italic) and missed cuts (strikethrough)
     def highlight_tier_leaders(s):
         if s.name == "Team Score":
             return [''] * len(s)
@@ -203,25 +203,78 @@ def show(conn, cursor, api_key):
         for user_name in s.index:
             player_name = s[user_name]
             
-            # Check if tier leader (green has priority)
+            # Check if tier leader
             is_leader = (player_name != "🔒" and 
                         player_name in name_to_id and 
                         name_to_id[player_name] in score_lookup and 
                         score_lookup[name_to_id[player_name]] == best_score)
             
-            if is_leader:
-                styles.append('background-color: #c9f7d3')  # Green for leader
-            elif player_name in name_to_id:
-                # Check for missed cut (red)
+            # Check for missed cut
+            is_missed_cut = False
+            if player_name in name_to_id:
                 player_id = name_to_id[player_name]
-                if cut_status.get(player_id, False):
-                    styles.append('background-color: #ffcccc')  # Light red for missed cut
-                else:
-                    styles.append('')
+                is_missed_cut = cut_status.get(player_id, False)
+            
+            # If BOTH leader AND missed cut, show neutral
+            if is_leader and is_missed_cut:
+                styles.append('')
+            elif is_leader:
+                styles.append('font-weight: bold; font-style: italic')  # Bold + Italic for leader
+            elif is_missed_cut:
+                styles.append('text-decoration: line-through')  # Strikethrough for missed cut
             else:
                 styles.append('')
         
         return styles
+    
+    # Style function to highlight tier leaders (green) and missed cuts (red)
+    # def highlight_tier_leaders(s):
+    #     if s.name == "Team Score":
+    #         return [''] * len(s)
+
+    #     tier_scores = {}
+
+    #     for user_name in s.index:
+    #         player_name = s[user_name]
+    #         if player_name == "🔒" or player_name not in name_to_id:
+    #             continue
+
+    #         player_id = name_to_id[player_name]
+    #         if player_id in score_lookup:
+    #             tier_scores[user_name] = score_lookup[player_id]
+
+    #     if not tier_scores:
+    #         return [''] * len(s)
+
+    #     best_score = min(tier_scores.values())
+
+    #     styles = []
+    #     for user_name in s.index:
+    #         player_name = s[user_name]
+            
+    #         # Check if tier leader
+    #         is_leader = (player_name != "🔒" and 
+    #                     player_name in name_to_id and 
+    #                     name_to_id[player_name] in score_lookup and 
+    #                     score_lookup[name_to_id[player_name]] == best_score)
+            
+    #         # Check for missed cut
+    #         is_missed_cut = False
+    #         if player_name in name_to_id:
+    #             player_id = name_to_id[player_name]
+    #             is_missed_cut = cut_status.get(player_id, False)
+            
+    #         # If BOTH leader AND missed cut, show neutral (they cancel out)
+    #         if is_leader and is_missed_cut:
+    #             styles.append('')  # Neutral - no color
+    #         elif is_leader:
+    #             styles.append('background-color: #c9f7d3')  # Green for leader only
+    #         elif is_missed_cut:
+    #             styles.append('background-color: #ffcccc')  # Red for missed cut only
+    #         else:
+    #             styles.append('')
+        
+    #     return styles
     
 
     # Apply styling
@@ -312,16 +365,6 @@ def show(conn, cursor, api_key):
 
     # Reset index
     df_display = leaderboard.reset_index(drop=True)
-
-    # Define light colors for each tier
-    # tier_colors = {
-    #     1: "#FFE6E6",  # Light red
-    #     2: "#FFF4E6",  # Light orange
-    #     3: "#FFFBE6",  # Light yellow
-    #     4: "#E6F7FF",  # Light blue
-    #     5: "#F0E6FF",  # Light purple
-    #     6: "#E6FFE6"   # Light green
-    # }
     
     tier_colors = {
         1: "#FFB3BA",  # Soft red
