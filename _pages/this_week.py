@@ -30,7 +30,7 @@ def show(conn, cursor, api_key):
 
     # Get tournament start time
     start_time = tournament["start_time"]
-    locked = start_time and now < start_time  # locked = True if tournament hasn't started
+    locked = start_time and now >= start_time  # locked = True if tournament HAS started
 
     # 1️⃣ Get all users
     cursor.execute("SELECT username, name FROM users")
@@ -60,7 +60,7 @@ def show(conn, cursor, api_key):
         for tier_number in range(1, 7):
             pick_id = pick_map[username][tier_number]
 
-            if pick_id and not locked:
+            if pick_id and locked:
                 # Show pick if tournament started
                 cursor.execute("SELECT name_last FROM players WHERE player_id=%s", (pick_id,))
                 player = cursor.fetchone()
@@ -201,13 +201,17 @@ def show(conn, cursor, api_key):
     team_score_row = {}
     for user in users:
         user_name = user["name"]
-        score_display = user_scores.get(user_name, "E")
         
-        # Add trophy if this user is leading
-        if user_name in leaders and score_display != "E":
-            team_score_row[user_name] = f"🏆 {score_display}"
+        if locked:  # Only show scores if tournament started
+            score_display = user_scores.get(user_name, "E")
+            
+            # Add trophy if this user is leading
+            if user_name in leaders and score_display != "E":
+                team_score_row[user_name] = f"🏆 {score_display}"
+            else:
+                team_score_row[user_name] = score_display
         else:
-            team_score_row[user_name] = score_display
+            team_score_row[user_name] = "🔒"  # Hide scores before tournament with "lock" symbol
 
     # Insert team score row at the bottom
     team_score_df = pd.DataFrame([team_score_row], index=["Team Score"])
@@ -325,6 +329,7 @@ def show(conn, cursor, api_key):
         column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="small")
 
     # Display weekly points above the table in 4 columns (mobile-friendly)
+    # if locked:  # Only show if tournament has started
     points_html = '<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px;">'
     
     for user in users:
@@ -339,9 +344,9 @@ def show(conn, cursor, api_key):
             pts_display = str(pts)
         
         points_html += f'<div style="flex: 1 1 22%; font-size: 18px; text-align: left; text-indent: 10px;"><b>{pts_display}</b></div>'
-        
     points_html += '</div>'
     st.markdown(points_html, unsafe_allow_html=True)
+    st.write("")
 
     st.dataframe(
         styled_picks_df,
@@ -353,91 +358,91 @@ def show(conn, cursor, api_key):
 
     st.write("")
 
-    # Get picked players for this tournament
-    def get_picked_players(conn, tournament_id):
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT DISTINCT player_id
-            FROM user_picks
-            WHERE tournament_id = %s
-        """, (tournament_id,))
+    # Only show leaderboard if tournament has started
+    if locked:
+        # Get picked players for this tournament
+        def get_picked_players(conn, tournament_id):
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT DISTINCT player_id
+                FROM user_picks
+                WHERE tournament_id = %s
+            """, (tournament_id,))
 
-        rows = cur.fetchall()
-        player_ids = [str(row["player_id"]) for row in rows]
-        return player_ids
+            rows = cur.fetchall()
+            player_ids = [str(row["player_id"]) for row in rows]
+            return player_ids
 
-    # Leaderboard API call and display
-    try:
-        from utils.leaderboard_api import get_live_leaderboard
-        leaderboard = get_live_leaderboard(api_key)
-        
-        # Check if leaderboard is empty before filtering
-        if leaderboard.empty:
-            st.info("🏌️ Live leaderboard will appear once the tournament begins")
-            return
+        # Leaderboard API call and display
+        try:
+            from utils.leaderboard_api import get_live_leaderboard
+            leaderboard = get_live_leaderboard(api_key)
             
-    except Exception as e:
-        st.info("🏌️ Live leaderboard will appear once the tournament begins")
-        return
+            # Check if leaderboard is empty before filtering
+            if leaderboard.empty:
+                st.info("🏌️ Live leaderboard will appear once the tournament begins")
+            else:
+                picked_ids = get_picked_players(conn, tournament_id)
+                leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
+                
+                # Check if leaderboard is empty after filtering
+                if leaderboard.empty:
+                    st.info("🏌️ Live leaderboard will appear once the tournament begins")
+                else:
+                    # Check if scores are valid (not all dashes/empty)
+                    valid_scores = leaderboard["Score"].apply(lambda x: x not in ["-", "", None, "nan"]).any()
+                    if not valid_scores:
+                        st.info("🏌️ Live leaderboard will appear once the tournament begins")
+                    else:
+                        # Create player_id to tier lookup before dropping PlayerID
+                        player_tier_map = {}
+                        for _, row in leaderboard.iterrows():
+                            player_id = str(row["PlayerID"])
+                            cursor.execute("""
+                                SELECT tier_number
+                                FROM weekly_tiers
+                                WHERE tournament_id = %s AND player_id = %s
+                            """, (tournament_id, player_id))
+                            tier_result = cursor.fetchone()
+                            if tier_result:
+                                player_tier_map[row["Player"]] = tier_result["tier_number"]
 
-    picked_ids = get_picked_players(conn, tournament_id)
-    leaderboard = leaderboard[leaderboard["PlayerID"].isin(picked_ids)]
-    
-    # Check if leaderboard is empty after filtering
-    if leaderboard.empty:
-        st.info("🏌️ Live leaderboard will appear once the tournament begins")
-        return
-    
-    # Check if scores are valid (not all dashes/empty)
-    valid_scores = leaderboard["Score"].apply(lambda x: x not in ["-", "", None, "nan"]).any()
-    if not valid_scores:
-        st.info("🏌️ Live leaderboard will appear once the tournament begins")
-        return
+                        leaderboard.drop(columns=["PlayerID", "Status"], inplace=True)
 
-    # Create player_id to tier lookup before dropping PlayerID
-    player_tier_map = {}
-    for _, row in leaderboard.iterrows():
-        player_id = str(row["PlayerID"])
-        cursor.execute("""
-            SELECT tier_number
-            FROM weekly_tiers
-            WHERE tournament_id = %s AND player_id = %s
-        """, (tournament_id, player_id))
-        tier_result = cursor.fetchone()
-        if tier_result:
-            player_tier_map[row["Player"]] = tier_result["tier_number"]
+                        # Reset index
+                        df_display = leaderboard.reset_index(drop=True)
+                        
+                        tier_colors = {
+                            1: "#FFB3BA",  # Soft red
+                            2: "#D3D3D3",  # Grey
+                            3: "#FFFFBA",  # Soft yellow
+                            4: "#BAFFC9",  # Soft green
+                            5: "#BAE1FF",  # Soft blue
+                            6: "#E0BBE4"   # Soft lavender
+                        }
 
-    leaderboard.drop(columns=["PlayerID", "Status"], inplace=True)  # Drop Status too
+                        # Apply style: tier colors, green scores, smaller font
+                        def highlight_by_tier(row):
+                            player_name = row["Player"]
+                            tier = player_tier_map.get(player_name)
+                            bg_color = tier_colors.get(tier, "")
+                            return [f'background-color: {bg_color}' if bg_color else '' for _ in row]
 
-    # Reset index
-    df_display = leaderboard.reset_index(drop=True)
-    
-    tier_colors = {
-        1: "#FFB3BA",  # Soft red
-        2: "#D3D3D3",  # Grey
-        3: "#FFFFBA",  # Soft yellow
-        4: "#BAFFC9",  # Soft green
-        5: "#BAE1FF",  # Soft blue
-        6: "#E0BBE4"   # Soft lavender
-    }
+                        styled_leaderboard_df = (
+                            df_display.style
+                            .apply(highlight_by_tier, axis=1)
+                            .set_properties(**{'text-align': 'center', 'font-size': '12px'}, subset=["Score"])
+                            .set_properties(**{'font-size': '12px'})
+                        )
 
-    # Apply style: tier colors, green scores, smaller font
-    def highlight_by_tier(row):
-        player_name = row["Player"]
-        tier = player_tier_map.get(player_name)
-        bg_color = tier_colors.get(tier, "")
-        return [f'background-color: {bg_color}' if bg_color else '' for _ in row]
-
-    styled_leaderboard_df = (
-        df_display.style
-        .apply(highlight_by_tier, axis=1)
-        .set_properties(**{'text-align': 'center', 'font-size': '12px'}, subset=["Score"])
-        .set_properties(**{'font-size': '12px'})
-    )
-    # st.write("🏌️ Live Leaderboard")
-    st.dataframe(
-        styled_leaderboard_df,
-        width="stretch",
-        height=500,
-        hide_index=True
-    )
+                        st.dataframe(
+                            styled_leaderboard_df,
+                            width="stretch",
+                            height=500,
+                            hide_index=True
+                        )
+                
+        except Exception as e:
+            st.info("🏌️ Live leaderboard will appear once the tournament begins")
+    else:
+        st.info("🏌️ Picks are locked. Live leaderboard will appear when the tournament begins.")
