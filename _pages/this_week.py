@@ -24,8 +24,8 @@ def show(conn, cursor, api_key):
         return
     
     tournament_id = tournament["tournament_id"]
-    st.write(f"**{tournament['name']}**")
-    
+    #align center and add some spacing
+    st.markdown(f"<h5 style='text-align: center;'>{tournament['name']}</h5>", unsafe_allow_html=True)
     st.write("")
 
     # Get tournament start time
