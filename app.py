@@ -148,8 +148,8 @@ for tournament in unfinalized_tournaments:
                 numeric_score = 999
             score_lookup[player_id] = numeric_score
         
-        # Calculate tier winners for each tier (1-5)
-        for tier_number in range(1, 6):
+        # Calculate tier winners for each tier (1-6)
+        for tier_number in range(1, 7):
             # Get all players in this tier
             cursor.execute("""
                 SELECT player_id
@@ -192,7 +192,7 @@ for tournament in unfinalized_tournaments:
         """, (tournament_id,))
         all_picks = cursor.fetchall()
         
-        pick_map = {u["username"]: {tier: None for tier in range(1, 6)} for u in all_users}
+        pick_map = {u["username"]: {tier: None for tier in range(1, 7)} for u in all_users}
         for row in all_picks:
             pick_map[row["username"]][row["tier_number"]] = row["player_id"]
         
@@ -201,7 +201,7 @@ for tournament in unfinalized_tournaments:
         for user in all_users:
             username = user["username"]
             total_score = 0
-            for tier_number in range(1, 6):
+            for tier_number in range(1, 7):
                 pick_id = pick_map[username][tier_number]
                 if pick_id and str(pick_id) in score_lookup:
                     total_score += score_lookup[str(pick_id)]
