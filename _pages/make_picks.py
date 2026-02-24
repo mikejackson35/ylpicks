@@ -30,7 +30,7 @@ def show(conn, cursor, username):
     
     tournament_id = tournament["tournament_id"]
     st.subheader("Make Picks")
-    st.write("Be sure to hit save!")
+    # st.write("Be sure to hit save!")
     
     st.sidebar.divider()
 
@@ -135,7 +135,7 @@ def show(conn, cursor, username):
     missing_tiers = [tier for tier, pick in user_picks.items() if pick is None]
     
     if missing_tiers:
-        st.warning(f"⚠️ Still Missing Tier {', Tier '.join(map(str, missing_tiers))}")
+        st.warning(f"⚠️ You Missed Tier {', Tier '.join(map(str, missing_tiers))}")
     
     # Single save button
     if st.button("💾 Save Picks", type="primary", disabled=bool(missing_tiers)):

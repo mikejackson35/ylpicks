@@ -175,7 +175,7 @@ for tournament in unfinalized_tournaments:
             # Insert tier winner into results
             if winning_player_id:
                 cursor.execute("""
-                    INSERT INTO results (tournament_id, tier_number, winning_player_id)
+                    INSERT INTO weekly_tiers_results (tournament_id, tier_number, winning_player_id)
                     VALUES (%s, %s, %s)
                     ON CONFLICT (tournament_id, tier_number)
                     DO UPDATE SET winning_player_id = EXCLUDED.winning_player_id
@@ -223,7 +223,7 @@ for tournament in unfinalized_tournaments:
                     # Check if this pick won the tier
                     cursor.execute("""
                         SELECT winning_player_id
-                        FROM results
+                        FROM weekly_tiers_results
                         WHERE tournament_id = %s AND tier_number = %s
                     """, (tournament_id, tier_number))
                     result = cursor.fetchone()
@@ -392,7 +392,7 @@ if username in ADMINS:
 
                 cursor.execute("""
                     SELECT winning_player_id
-                    FROM results
+                    FROM weekly_tiers_results
                     WHERE tournament_id=%s AND tier_number=%s
                 """, (tournament_id, tier_number))
                 existing = cursor.fetchone()
@@ -413,7 +413,7 @@ if username in ADMINS:
 
                 if st.button("Save", key=f"save_{tournament_id}_{tier_number}"):
                     cursor.execute("""
-                        INSERT INTO results (tournament_id, tier_number, winning_player_id)
+                        INSERT INTO weekly_tiers_results (tournament_id, tier_number, winning_player_id)
                         VALUES (%s, %s, %s)
                         ON CONFLICT (tournament_id, tier_number)
                         DO UPDATE SET winning_player_id=EXCLUDED.winning_player_id
@@ -434,7 +434,7 @@ if username in ADMINS:
             FROM tournaments t
             WHERE t.start_time < %s
             AND NOT EXISTS (
-                SELECT 1 FROM results r 
+                SELECT 1 FROM weekly_tiers_results r 
                 WHERE r.tournament_id = t.tournament_id 
                 LIMIT 1
             )
@@ -502,7 +502,7 @@ if username in ADMINS:
                         
                         if winning_player_id:
                             cursor.execute("""
-                                INSERT INTO results (tournament_id, tier_number, winning_player_id)
+                                INSERT INTO weekly_tiers_results (tournament_id, tier_number, winning_player_id)
                                 VALUES (%s, %s, %s)
                                 ON CONFLICT (tournament_id, tier_number)
                                 DO UPDATE SET winning_player_id = EXCLUDED.winning_player_id
