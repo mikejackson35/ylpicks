@@ -10,17 +10,16 @@ def safe_key(s: str) -> str:
 
 def show(conn, cursor, username):
     
-    # Get current tournament (most recent tournament that hasn't locked yet)
+    # Get current tournament (next one that hasn't started yet, or current if within 5 days)
     now = datetime.now(timezone.utc)
     
     cursor.execute("""
-            SELECT tournament_id, name, start_time 
-            FROM tournaments 
-            WHERE start_time <= %s + INTERVAL '3 days'
-            AND start_time >= %s - INTERVAL '4 days'
-            ORDER BY start_time DESC
-            LIMIT 1
-        """, (now, now))
+        SELECT tournament_id, name, start_time 
+        FROM tournaments 
+        WHERE start_time + INTERVAL '5 days' > %s
+        ORDER BY start_time ASC
+        LIMIT 1
+    """, (now,))
     
     tournament = cursor.fetchone()
     
@@ -30,13 +29,13 @@ def show(conn, cursor, username):
     
     tournament_id = tournament["tournament_id"]
     st.subheader("Make Picks")
-    # st.write("Be sure to hit save!")
+    st.write("Be sure to hit save!")
     
     st.sidebar.divider()
 
-    # Get tournament start time to lock picks
+    # Picks lock at tournament start time
     start_time = tournament["start_time"]
-    locked = start_time and now >= start_time
+    locked = now >= start_time
 
     st.write("")
 

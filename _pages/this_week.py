@@ -5,17 +5,17 @@ from datetime import datetime, timezone
 
 def show(conn, cursor, api_key):
 
-    # Get current tournament (most recent tournament that has started or will start soon)
+    # Get current tournament (show until 5 days after start)
     now = datetime.now(timezone.utc)
     
     cursor.execute("""
-            SELECT tournament_id, name, start_time 
-            FROM tournaments 
-            WHERE start_time <= %s + INTERVAL '3 days'
-            AND start_time >= %s - INTERVAL '4 days'
-            ORDER BY start_time DESC
-            LIMIT 1
-        """, (now, now))
+        SELECT tournament_id, name, start_time 
+        FROM tournaments 
+        WHERE start_time <= %s
+          AND start_time + INTERVAL '5 days' > %s
+        ORDER BY start_time DESC
+        LIMIT 1
+    """, (now, now))
     
     tournament = cursor.fetchone()
     
@@ -24,13 +24,12 @@ def show(conn, cursor, api_key):
         return
     
     tournament_id = tournament["tournament_id"]
-    #align center and add some spacing
     st.markdown(f"<h5 style='text-align: center;'>{tournament['name']}</h5>", unsafe_allow_html=True)
     st.write("")
 
-    # Get tournament start time
+    # Picks are locked once tournament starts
     start_time = tournament["start_time"]
-    locked = start_time and now >= start_time  # locked = True if tournament HAS started
+    locked = now >= start_time
 
     # 1️⃣ Get all users
     cursor.execute("SELECT username, name FROM users")
