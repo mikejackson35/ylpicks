@@ -98,7 +98,7 @@ if auth_status is not True:
 from datetime import timedelta
 
 # Get tournaments that ended (start_time + 4 days 20 hours) but haven't been finalized
-tournament_end_offset = timedelta(days=4, hours=20)
+tournament_end_offset = timedelta(days=0, hours=1)
 now = datetime.now(timezone.utc)
 
 cursor.execute("""
@@ -148,8 +148,8 @@ for tournament in unfinalized_tournaments:
                 numeric_score = 999
             score_lookup[player_id] = numeric_score
         
-        # Calculate tier winners for each tier (1-6)
-        for tier_number in range(1, 7):
+        # Calculate tier winners for each tier (1-5)
+        for tier_number in range(1, 6):
             # Get all players in this tier
             cursor.execute("""
                 SELECT player_id
@@ -179,7 +179,7 @@ for tournament in unfinalized_tournaments:
                     VALUES (%s, %s, %s)
                     ON CONFLICT (tournament_id, tier_number)
                     DO UPDATE SET winning_player_id = EXCLUDED.winning_player_id
-                """, (tournament_id, tier_number, winning_player_id))
+                            """, (tournament_id, tier_number, winning_player_id))
         
         # Now calculate weekly points for each user
         cursor.execute("SELECT username, name FROM users")
@@ -192,7 +192,7 @@ for tournament in unfinalized_tournaments:
         """, (tournament_id,))
         all_picks = cursor.fetchall()
         
-        pick_map = {u["username"]: {tier: None for tier in range(1, 7)} for u in all_users}
+        pick_map = {u["username"]: {tier: None for tier in range(1, 6)} for u in all_users}
         for row in all_picks:
             pick_map[row["username"]][row["tier_number"]] = row["player_id"]
         
@@ -201,7 +201,7 @@ for tournament in unfinalized_tournaments:
         for user in all_users:
             username = user["username"]
             total_score = 0
-            for tier_number in range(1, 7):
+            for tier_number in range(1, 6):
                 pick_id = pick_map[username][tier_number]
                 if pick_id and str(pick_id) in score_lookup:
                     total_score += score_lookup[str(pick_id)]
@@ -251,8 +251,9 @@ for tournament in unfinalized_tournaments:
         conn.commit()
         
     except Exception as e:
-        # Silently continue if API fails or other errors
-        continue
+            # Silently continue if API fails or other errors
+            conn.rollback()  # Add this line to clear the failed transaction
+            continue
 
 # ----------------------------
 # SEASON STANDINGS IN SIDEBAR
@@ -371,13 +372,13 @@ if username in ADMINS:
             selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
             tournament_id = tournament_map[selected_name]
 
-            for tier_number in range(1, 6):
+            for tier_number in range(1, 7):
                 st.markdown(f"**Tier {tier_number} Winner**")
 
                 cursor.execute("""
                     SELECT p.player_id, p.name
                     FROM weekly_tiers t
-                    JOIN players p ON p.player_id = t.player_id
+                    JOIN players p ON CAST(p.player_id AS TEXT) = CAST(t.player_id AS TEXT)
                     WHERE t.tournament_id = %s
                     AND t.tier_number = %s
                 """, (tournament_id, tier_number))
@@ -399,7 +400,7 @@ if username in ADMINS:
                 existing_name = None
                 if existing:
                     for pname, pid in player_options.items():
-                        if pid == existing["winning_player_id"]:
+                        if str(pid) == str(existing["winning_player_id"]):
                             existing_name = pname
 
                 choice = st.selectbox(
@@ -424,3 +425,154 @@ if username in ADMINS:
                     conn.commit()
                     st.success("Saved")
                     st.rerun()
+
+    # Manual finalize button - OUTSIDE the expander
+    if st.sidebar.button("🔄 Finalize Last Tournament", key="manual_finalize"):
+        # Get most recently ended tournament that hasn't been finalized
+        cursor.execute("""
+            SELECT t.tournament_id, t.name, t.start_time
+            FROM tournaments t
+            WHERE t.start_time < %s
+            AND NOT EXISTS (
+                SELECT 1 FROM results r 
+                WHERE r.tournament_id = t.tournament_id 
+                LIMIT 1
+            )
+            ORDER BY t.start_time DESC
+            LIMIT 1
+        """, (datetime.now(timezone.utc),))
+        
+        tournament = cursor.fetchone()
+        
+        if not tournament:
+            st.sidebar.warning("No tournaments to finalize")
+        else:
+            tournament_id = tournament["tournament_id"]
+            tournament_name = tournament["name"]
+            
+            try:
+                # Fetch final leaderboard
+                from utils.leaderboard_api import get_live_leaderboard
+                leaderboard = get_live_leaderboard(st.secrets["RAPIDAPI_KEY"])
+                
+                if leaderboard.empty:
+                    st.sidebar.error("Could not fetch leaderboard")
+                else:
+                    # Create score lookup
+                    score_lookup = {}
+                    cut_status = {}
+                    for _, lb_row in leaderboard.iterrows():
+                        player_id = str(lb_row["PlayerID"])
+                        score = lb_row["Score"]
+                        status = str(lb_row.get("Status", "active")).lower()
+                        cut_status[player_id] = (status == "cut")
+                        
+                        if score == "E":
+                            numeric_score = 0
+                        elif isinstance(score, str):
+                            try:
+                                numeric_score = int(score.replace("+", ""))
+                            except:
+                                numeric_score = 999
+                        else:
+                            numeric_score = 999
+                        score_lookup[player_id] = numeric_score
+                    
+                    # Calculate tier winners for each tier (1-6)
+                    for tier_number in range(1, 7):
+                        cursor.execute("""
+                            SELECT player_id
+                            FROM weekly_tiers
+                            WHERE tournament_id = %s AND tier_number = %s
+                        """, (tournament_id, tier_number))
+                        tier_players = cursor.fetchall()
+                        
+                        if not tier_players:
+                            continue
+                        
+                        best_score = 999
+                        winning_player_id = None
+                        
+                        for player in tier_players:
+                            player_id = str(player["player_id"])
+                            if player_id in score_lookup:
+                                if score_lookup[player_id] < best_score:
+                                    best_score = score_lookup[player_id]
+                                    winning_player_id = player_id
+                        
+                        if winning_player_id:
+                            cursor.execute("""
+                                INSERT INTO results (tournament_id, tier_number, winning_player_id)
+                                VALUES (%s, %s, %s)
+                                ON CONFLICT (tournament_id, tier_number)
+                                DO UPDATE SET winning_player_id = EXCLUDED.winning_player_id
+                            """, (tournament_id, tier_number, winning_player_id))
+                    
+                    # Calculate weekly points
+                    cursor.execute("SELECT username, name FROM users")
+                    all_users = cursor.fetchall()
+                    
+                    cursor.execute("""
+                        SELECT username, tier_number, player_id
+                        FROM user_picks
+                        WHERE tournament_id = %s
+                    """, (tournament_id,))
+                    all_picks = cursor.fetchall()
+                    
+                    pick_map = {u["username"]: {tier: None for tier in range(1, 7)} for u in all_users}
+                    for row in all_picks:
+                        pick_map[row["username"]][row["tier_number"]] = row["player_id"]
+                    
+                    # Calculate team scores
+                    user_team_scores = {}
+                    for user in all_users:
+                        username_key = user["username"]
+                        total_score = 0
+                        for tier_number in range(1, 7):
+                            pick_id = pick_map[username_key][tier_number]
+                            if pick_id and str(pick_id) in score_lookup:
+                                total_score += score_lookup[str(pick_id)]
+                        user_team_scores[username_key] = total_score
+                    
+                    best_team_score = min(user_team_scores.values()) if user_team_scores else 999
+                    
+                    # Calculate points
+                    for user in all_users:
+                        username_key = user["username"]
+                        points = 0
+                        
+                        for tier_number in range(1, 7):
+                            pick_id = pick_map[username_key][tier_number]
+                            if pick_id and str(pick_id) in score_lookup:
+                                player_id = str(pick_id)
+                                
+                                cursor.execute("""
+                                    SELECT winning_player_id
+                                    FROM results
+                                    WHERE tournament_id = %s AND tier_number = %s
+                                """, (tournament_id, tier_number))
+                                result = cursor.fetchone()
+                                
+                                if result and str(result["winning_player_id"]) == player_id:
+                                    points += 1
+                                
+                                if cut_status.get(player_id, False):
+                                    points -= 1
+                        
+                        if user_team_scores[username_key] == best_team_score and best_team_score != 999:
+                            points += 1
+                        
+                        weekly_results_id = f"{tournament_id}_{username_key}"
+                        cursor.execute("""
+                            INSERT INTO weekly_results (tournament_id, username, points, weekly_results_id)
+                            VALUES (%s, %s, %s, %s)
+                            ON CONFLICT (weekly_results_id)
+                            DO UPDATE SET points = EXCLUDED.points
+                        """, (tournament_id, username_key, points, weekly_results_id))
+                    
+                    conn.commit()
+                    st.sidebar.success(f"✅ {tournament_name} finalized!")
+                    st.rerun()
+                    
+            except Exception as e:
+                st.sidebar.error(f"Error: {e}")

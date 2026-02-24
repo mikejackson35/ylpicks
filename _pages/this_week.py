@@ -120,7 +120,7 @@ def show(conn, cursor, api_key):
         name_to_id = {}
         cut_status = {}
 
-# Calculate cumulative scores for each user
+    # Calculate cumulative scores for each user
     user_scores = {}
     numeric_scores = {}
 
@@ -152,14 +152,14 @@ def show(conn, cursor, api_key):
                 score_display = f"+{total_score}"
             user_scores[user_name] = score_display
 
-# Find user(s) with best score
+    # Find user(s) with best score
     if numeric_scores:
         best_score = min(numeric_scores.values())
         leaders = [name for name, score in numeric_scores.items() if score == best_score]
     else:
         leaders = []
 
-# Calculate weekly points for each user
+    # Calculate weekly points for each user
     weekly_points = {}
     for user in users:
         username = user["username"]
@@ -324,7 +324,7 @@ def show(conn, cursor, api_key):
     for tier_number in range(1, 7):
         column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="small")
 
-# Display weekly points above the table in 4 columns (mobile-friendly)
+    # Display weekly points above the table in 4 columns (mobile-friendly)
     points_html = '<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px;">'
     
     for user in users:
@@ -440,5 +440,3 @@ def show(conn, cursor, api_key):
         height=500,
         hide_index=True
     )
-
-    # st.write("Leaderboard will display when tournament begins")
