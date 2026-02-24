@@ -338,7 +338,7 @@ def show(conn, cursor, api_key):
         else:
             pts_display = str(pts)
         
-        points_html += f'<div style="flex: 1 1 22%; font-size: 18px; text-align: center;"><b>{pts_display}</b></div>'
+        points_html += f'<div style="flex: 1 1 22%; font-size: 18px; text-align: left;"><b>{pts_display}</b></div>'
     points_html += '</div>'
     st.markdown(points_html, unsafe_allow_html=True)
 
