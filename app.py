@@ -409,77 +409,8 @@ show_password_change(cursor, conn, username)
 # ADMIN TOOLS
 # ----------------------------
 if username in ADMINS:
-    with st.sidebar.expander("🛠 Admin: Set Tier Winners"):
 
-        cursor.execute("""
-            SELECT tournament_id, name
-            FROM tournaments
-            ORDER BY start_time
-        """)
-        tournaments = cursor.fetchall()
-
-        if not tournaments:
-            st.info("No tournaments found")
-        else:
-            tournament_map = {t["name"]: t["tournament_id"] for t in tournaments}
-            selected_name = st.selectbox("Tournament", list(tournament_map.keys()))
-            tournament_id = tournament_map[selected_name]
-
-            for tier_number in range(1, 7):
-                st.markdown(f"**Tier {tier_number} Winner**")
-
-                cursor.execute("""
-                    SELECT p.player_id, p.name
-                    FROM tournament_tiers t
-                    JOIN players p ON CAST(p.player_id AS TEXT) = CAST(t.player_id AS TEXT)
-                    WHERE t.tournament_id = %s
-                    AND t.tier_number = %s
-                """, (tournament_id, tier_number))
-                players = cursor.fetchall()
-
-                if not players:
-                    st.info("No players assigned to this tier")
-                    continue
-
-                player_options = {p["name"]: p["player_id"] for p in players}
-
-                cursor.execute("""
-                    SELECT winning_player_id
-                    FROM tier_winners
-                    WHERE tournament_id=%s AND tier_number=%s
-                """, (tournament_id, tier_number))
-                existing = cursor.fetchone()
-
-                existing_name = None
-                if existing:
-                    for pname, pid in player_options.items():
-                        if str(pid) == str(existing["winning_player_id"]):
-                            existing_name = pname
-
-                choice = st.selectbox(
-                    f"Winner (Tier {tier_number})",
-                    [""] + list(player_options.keys()),
-                    index=(list(player_options.keys()).index(existing_name) + 1)
-                    if existing_name else 0,
-                    key=f"tier_win_{tournament_id}_{tier_number}"
-                )
-
-                if st.button("Save", key=f"save_{tournament_id}_{tier_number}"):
-                    cursor.execute("""
-                        INSERT INTO tier_winners (tournament_id, tier_number, winning_player_id)
-                        VALUES (%s, %s, %s)
-                        ON CONFLICT (tournament_id, tier_number)
-                        DO UPDATE SET winning_player_id=EXCLUDED.winning_player_id
-                    """, (
-                        tournament_id,
-                        tier_number,
-                        player_options.get(choice)
-                    ))
-                    conn.commit()
-                    st.success("Saved")
-                    st.rerun()
-
-# Manual finalize button - OUTSIDE the expander
+# Manual finalize button
     if st.sidebar.button("🔄 Finalize Last Tournament", key="manual_finalize"):
         conn.rollback()
 
