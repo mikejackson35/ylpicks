@@ -16,7 +16,6 @@ def show(conn, cursor):
         SELECT tournament_id, name, start_time
         FROM tournaments
         ORDER BY start_time ASC
-        LIMIT 30
     """)
     tournaments = cursor.fetchall()
 

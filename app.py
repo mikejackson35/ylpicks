@@ -9,6 +9,7 @@ from utils.leaderboard_api import get_live_leaderboard
 import _pages.this_week as this_week
 import _pages.make_picks as make_picks
 import _pages.results as results_page
+import _pages.research as research_page
 import _pages.admin as admin_page
 
 # ----------------------------
@@ -386,7 +387,7 @@ st.sidebar.markdown("<br>", unsafe_allow_html=True)
 # ----------------------------
 # PAGE NAVIGATION
 # ----------------------------
-PAGES = ["This Week", "Make Picks", "Results"]
+PAGES = ["This Week", "Make Picks", "Results", "Research"]
 if username in ADMINS:
     PAGES.append("Admin")
 page = st.sidebar.radio("", PAGES)
@@ -403,6 +404,9 @@ elif page == "Make Picks":
 
 elif page == "Results":
     results_page.show(conn, cursor)
+
+elif page == "Research":
+    research_page.show(conn, cursor)
 
 elif page == "Admin":
     admin_page.show(conn, cursor)
