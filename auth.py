@@ -8,11 +8,16 @@ controller = CookieController()
 def init_auth():
     """Check cookies and initialize session state"""
     if "authentication_status" not in st.session_state:
-        saved_username = controller.get("username")
+        try:
+            saved_username = controller.get("username")
+            saved_name = controller.get("name")
+        except TypeError:
+            saved_username = None
+            saved_name = None
         if saved_username:
             st.session_state["authentication_status"] = True
             st.session_state["username"] = saved_username
-            st.session_state["name"] = controller.get("name")
+            st.session_state["name"] = saved_name
         else:
             st.session_state["authentication_status"] = None
             st.session_state["username"] = None
