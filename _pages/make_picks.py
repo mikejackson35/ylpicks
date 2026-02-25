@@ -28,8 +28,8 @@ def show(conn, cursor, username):
         return
     
     tournament_id = tournament["tournament_id"]
-    st.subheader(f"Make Picks — {tournament['name']}")
-    st.write("Be sure to hit save!")
+    st.subheader(f"Make Picks")
+    st.caption(f"{tournament['name']}")
     
     st.sidebar.divider()
 
@@ -128,6 +128,7 @@ def show(conn, cursor, username):
         user_picks[tier_number] = player_options.get(choice_name) if choice_name else None
 
     st.write("")
+    st.write("Be sure to hit save!")
     st.write("")
     
     # Validation check
