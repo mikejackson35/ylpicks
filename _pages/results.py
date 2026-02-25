@@ -50,7 +50,7 @@ def show(conn, cursor):
                 scores.append(f"{name_map[uname]} {sign}{pts}")
         summary = "  |  ".join(scores)
 
-        with st.expander(f"**{tname}**  —  {summary}"):
+        with st.expander(f"**{tname}**"):#  —  {summary}"):
 
             # Pull tiers_results for this tournament
             cursor.execute("""
@@ -144,9 +144,17 @@ def show(conn, cursor):
             df = pd.DataFrame(table_rows)
             st.dataframe(df, hide_index=True, use_container_width=True)
 
-            # st.markdown(
-            #     "  |  ".join(
-            #         f"**{name_map[u]}**: {'+' if (weekly_map.get((tid,u)) or 0) >= 0 else ''}{weekly_map.get((tid,u), '-')}"
-            #         for u in usernames
-            #     )
-            # )
+            points_html = '<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px;">'
+            for uname in usernames:
+                pts = weekly_map.get((tid, uname))
+                if pts is None:
+                    pts_display = "-"
+                elif pts > 0:
+                    pts_display = f"+{pts}"
+                else:
+                    pts_display = str(pts)
+                label = name_map[uname]
+                points_html += f'<div style="flex: 1 1 22%; font-size: 18px; text-align: left; text-indent: 10px;"><b>{pts_display}</b></div>'
+            points_html += '</div>'
+            # st.write("")
+            st.markdown(points_html, unsafe_allow_html=True)
