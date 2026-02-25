@@ -167,4 +167,7 @@ def show(conn, cursor):
                 name_map[u]: st.column_config.TextColumn(name_map[u], width="small")
                 for u in usernames
             }
+            column_config["Team Score"] = st.column_config.TextColumn("Team Score", width="small")
+            for tier_number in range(1, 7):
+                column_config[f"Tier {tier_number}"] = st.column_config.TextColumn(f"Tier {tier_number}", width="small")
             st.dataframe(styled, hide_index=True, column_config=column_config, use_container_width=True)

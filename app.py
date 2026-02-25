@@ -9,6 +9,7 @@ from utils.leaderboard_api import get_live_leaderboard
 import _pages.this_week as this_week
 import _pages.make_picks as make_picks
 import _pages.results as results_page
+import _pages.admin as admin_page
 
 # ----------------------------
 # CSS STYLES
@@ -331,6 +332,10 @@ sb_df = pd.DataFrame({
     "Points": list(user_points.values())
 }).sort_values("Points", ascending=False).reset_index(drop=True)
 
+cursor.execute("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE is_finalized = TRUE) as done FROM tournaments")
+tourn_counts = cursor.fetchone()
+thru_text = f"(thru {tourn_counts['done']} of {tourn_counts['total']})"
+
 html = """
 <style>
 .lb-row {
@@ -347,8 +352,8 @@ html = """
 }
 </style>
 <div style="text-align:center;">
-<b>Season</b><br><br>
-"""
+<b>Season</b><br>
+""" + f'<small style="color:gray">{thru_text}</small><br><br>\n'
 
 for _, row in sb_df.iterrows():
     html += f"""
@@ -373,7 +378,6 @@ with st.sidebar.expander("Scoring"):
     \n
     **Season** <br>
     $100 to winner \n
-    <small>NOTE: must play all weeks to qualify </small> 😭😭😭😭
     """, unsafe_allow_html=True)# text_alignment='center')
 
 
@@ -383,6 +387,8 @@ st.sidebar.markdown("<br>", unsafe_allow_html=True)
 # PAGE NAVIGATION
 # ----------------------------
 PAGES = ["This Week", "Make Picks", "Results"]
+if username in ADMINS:
+    PAGES.append("Admin")
 page = st.sidebar.radio("", PAGES)
 st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
 
@@ -397,6 +403,9 @@ elif page == "Make Picks":
 
 elif page == "Results":
     results_page.show(conn, cursor)
+
+elif page == "Admin":
+    admin_page.show(conn, cursor)
 
 # ----------------------------
 # LOGOUT / PASSWORD
