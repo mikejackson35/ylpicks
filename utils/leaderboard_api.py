@@ -19,7 +19,7 @@ def leaderboard_to_df(rows):
             "Pos": p.get("position"),
             "Player": f"{p.get('firstName')} {p.get('lastName')}",
             "Score": p.get("total"),
-            "Status": p.get("status", "active")  # Added status field
+            "Status": p.get("status", "active")
         }
         for p in rows
     ])
@@ -35,7 +35,8 @@ def earnings_to_df(rows):
     ])
 
 
-def get_live_leaderboard(api_key, org_id="1", tourn_id="010", year="2026"):
+def get_live_leaderboard(api_key, org_id, tourn_id, year):
+    """Fetch leaderboard for a specific tournament. All params required."""
     params = {
         "orgId": org_id,
         "tournId": tourn_id,
@@ -54,6 +55,4 @@ def get_live_leaderboard(api_key, org_id="1", tourn_id="010", year="2026"):
         raise RuntimeError(f"Leaderboard API error: {data}")
 
     lb_df = leaderboard_to_df(data["leaderboardRows"])
-
-    final = lb_df.reset_index(drop=True)
-    return final
+    return lb_df.reset_index(drop=True)

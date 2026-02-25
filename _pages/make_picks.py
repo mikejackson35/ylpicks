@@ -15,7 +15,7 @@ def show(conn, cursor, username):
     
     cursor.execute("""
         SELECT tournament_id, name, start_time 
-        FROM tournaments 
+        FROM tournaments_new 
         WHERE start_time + INTERVAL '5 days' > %s
         ORDER BY start_time ASC
         LIMIT 1
@@ -28,7 +28,7 @@ def show(conn, cursor, username):
         return
     
     tournament_id = tournament["tournament_id"]
-    st.subheader("Make Picks")
+    st.subheader(f"Make Picks — {tournament['name']}")
     st.write("Be sure to hit save!")
     
     st.sidebar.divider()

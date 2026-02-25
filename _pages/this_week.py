@@ -9,8 +9,8 @@ def show(conn, cursor, api_key):
     now = datetime.now(timezone.utc)
     
     cursor.execute("""
-        SELECT tournament_id, name, start_time 
-        FROM tournaments 
+        SELECT tournament_id, name, start_time, org_id, tourn_id, year
+        FROM tournaments_new
         WHERE start_time <= %s
           AND start_time + INTERVAL '5 days' > %s
         ORDER BY start_time DESC
@@ -20,10 +20,24 @@ def show(conn, cursor, api_key):
     tournament = cursor.fetchone()
     
     if not tournament:
-        st.warning("No current tournament available")
-        return
-    
+        # Between tournaments — show next upcoming tournament with picks hidden
+        cursor.execute("""
+            SELECT tournament_id, name, start_time, org_id, tourn_id, year
+            FROM tournaments_new
+            WHERE start_time > %s
+            ORDER BY start_time ASC
+            LIMIT 1
+        """, (now,))
+        tournament = cursor.fetchone()
+
+        if not tournament:
+            st.info("Season complete — check Results for final standings.")
+            return
+
     tournament_id = tournament["tournament_id"]
+    t_org_id = tournament.get("org_id") or "1"
+    t_tourn_id = tournament.get("tourn_id") or ""
+    t_year = tournament.get("year") or "2026"
     st.markdown(f"<h5 style='text-align: center;'>{tournament['name']}</h5>", unsafe_allow_html=True)
     st.write("")
 
@@ -76,48 +90,50 @@ def show(conn, cursor, api_key):
     df = pd.DataFrame(table)
 
     # Get leaderboard to highlight leaders in each tier and track missed cuts
-    try:
-        from utils.leaderboard_api import get_live_leaderboard
-        leaderboard_for_highlight = get_live_leaderboard(api_key)
+    # Only fetch live data if the tournament has started (locked)
+    score_lookup = {}
+    name_to_id = {}
+    cut_status = {}
 
-        # Create score lookup and cut status
-        score_lookup = {}
-        cut_status = {}  # player_id -> True if missed cut
-        
-        for _, lb_row in leaderboard_for_highlight.iterrows():
-            player_id = str(lb_row["PlayerID"])
-            score = lb_row["Score"]
-            status = str(lb_row.get("Status", "active")).lower()
-            
-            # Track missed cuts
-            cut_status[player_id] = (status == "cut")
-            
-            if score == "E":
-                numeric_score = 0
-            elif isinstance(score, str):
-                try:
-                    numeric_score = int(score.replace("+", ""))
-                except:
+    if locked:
+        try:
+            from utils.leaderboard_api import get_live_leaderboard
+            leaderboard_for_highlight = get_live_leaderboard(api_key, t_org_id, t_tourn_id, t_year)
+
+            # Create score lookup and cut status
+            for _, lb_row in leaderboard_for_highlight.iterrows():
+                player_id = str(lb_row["PlayerID"])
+                score = lb_row["Score"]
+                status = str(lb_row.get("Status", "active")).lower()
+
+                # Track missed cuts
+                cut_status[player_id] = (status == "cut")
+
+                if score == "E":
+                    numeric_score = 0
+                elif isinstance(score, str):
+                    try:
+                        numeric_score = int(score.replace("+", ""))
+                    except:
+                        numeric_score = 999
+                else:
                     numeric_score = 999
-            else:
-                numeric_score = 999
-            score_lookup[player_id] = numeric_score
+                score_lookup[player_id] = numeric_score
 
-        # Build a reverse lookup: player_name -> player_id
-        name_to_id = {}
-        for username in usernames:
-            for tier_num in range(1, 7):
-                pick_id = pick_map[username][tier_num]
-                if pick_id:
-                    cursor.execute("SELECT name_last FROM players WHERE player_id=%s", (pick_id,))
-                    player = cursor.fetchone()
-                    if player:
-                        name_to_id[player["name_last"]] = str(pick_id)
+            # Build a reverse lookup: player_name -> player_id
+            for username in usernames:
+                for tier_num in range(1, 7):
+                    pick_id = pick_map[username][tier_num]
+                    if pick_id:
+                        cursor.execute("SELECT name_last FROM players WHERE player_id=%s", (pick_id,))
+                        player = cursor.fetchone()
+                        if player:
+                            name_to_id[player["name_last"]] = str(pick_id)
 
-    except Exception as e:
-        score_lookup = {}
-        name_to_id = {}
-        cut_status = {}
+        except Exception:
+            score_lookup = {}
+            name_to_id = {}
+            cut_status = {}
 
     # Calculate cumulative scores for each user
     user_scores = {}
@@ -375,7 +391,7 @@ def show(conn, cursor, api_key):
         # Leaderboard API call and display
         try:
             from utils.leaderboard_api import get_live_leaderboard
-            leaderboard = get_live_leaderboard(api_key)
+            leaderboard = get_live_leaderboard(api_key, t_org_id, t_tourn_id, t_year)
             
             # Check if leaderboard is empty before filtering
             if leaderboard.empty:
@@ -444,4 +460,4 @@ def show(conn, cursor, api_key):
         except Exception as e:
             st.info("🏌️ Live leaderboard will appear once the tournament begins")
     else:
-        st.info("🏌️ Picks are locked. Live leaderboard will appear when the tournament begins.")
+        st.info("🏌️ Live leaderboard will appear when the tournament begins.")
