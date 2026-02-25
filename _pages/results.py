@@ -85,29 +85,28 @@ def show(conn, cursor):
             # One row per tier, one column per user
             table_rows = []
             for tier_num in tiers:
-                row_data = {"Tier": f"T{tier_num}"}
+                row_data = {}
                 for uname in usernames:
                     pick = tier_data[tier_num].get(uname)
                     if not pick:
-                        row_data[name_map[uname]] = "-"
+                        row_data[name_map[uname]] = ""
                         continue
 
                     player = pick["player_name"]
-                    score = pick["player_score"] or "-"
                     winner = pick["tier_winner"]
                     cut = pick["missed_cut"]
 
-                    # Build cell: "Last (score) 🏆/✂️"
                     last_name = player.split()[-1] if player else "?"
-                    badge = ""
                     if winner and not cut:
                         badge = " 🏆"
                     elif winner and cut:
                         badge = " 🏆✂️"
                     elif cut:
                         badge = " ✂️"
+                    else:
+                        badge = ""
 
-                    row_data[name_map[uname]] = f"{last_name} ({score}){badge}"
+                    row_data[name_map[uname]] = f"{last_name}{badge}"
 
                 table_rows.append(row_data)
 
@@ -130,7 +129,7 @@ def show(conn, cursor):
             valid_totals = [v for v in user_team_totals.values() if v is not None]
             best_total = min(valid_totals) if valid_totals else None
 
-            team_row = {"Tier": "Team"}
+            team_row = {}
             for uname in usernames:
                 total = user_team_totals.get(uname)
                 if total is None:
@@ -145,9 +144,9 @@ def show(conn, cursor):
             df = pd.DataFrame(table_rows)
             st.dataframe(df, hide_index=True, use_container_width=True)
 
-            st.markdown(
-                "  |  ".join(
-                    f"**{name_map[u]}**: {'+' if (weekly_map.get((tid,u)) or 0) >= 0 else ''}{weekly_map.get((tid,u), '-')}"
-                    for u in usernames
-                )
-            )
+            # st.markdown(
+            #     "  |  ".join(
+            #         f"**{name_map[u]}**: {'+' if (weekly_map.get((tid,u)) or 0) >= 0 else ''}{weekly_map.get((tid,u), '-')}"
+            #         for u in usernames
+            #     )
+            # )
