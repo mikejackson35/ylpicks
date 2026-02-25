@@ -10,7 +10,7 @@ def show(conn, cursor, api_key):
     
     cursor.execute("""
         SELECT tournament_id, name, start_time, org_id, tourn_id, year
-        FROM tournaments_new
+        FROM tournaments
         WHERE start_time <= %s
           AND start_time + INTERVAL '5 days' > %s
         ORDER BY start_time DESC
@@ -23,7 +23,7 @@ def show(conn, cursor, api_key):
         # Between tournaments — show next upcoming tournament with picks hidden
         cursor.execute("""
             SELECT tournament_id, name, start_time, org_id, tourn_id, year
-            FROM tournaments_new
+            FROM tournaments
             WHERE start_time > %s
             ORDER BY start_time ASC
             LIMIT 1
@@ -38,7 +38,8 @@ def show(conn, cursor, api_key):
     t_org_id = tournament.get("org_id") or "1"
     t_tourn_id = tournament.get("tourn_id") or ""
     t_year = tournament.get("year") or "2026"
-    st.markdown(f"<h5 style='text-align: center;'>{tournament['name']}</h5>", unsafe_allow_html=True)
+    # st.markdown(f"<h5 style='text-align: center;'>{tournament['name']}</h5>", unsafe_allow_html=True)
+    st.subheader(f"{tournament['name']}")
     st.write("")
 
     # Picks are locked once tournament starts
@@ -54,7 +55,7 @@ def show(conn, cursor, api_key):
     # 2️⃣ Get picks for this tournament
     cursor.execute("""
         SELECT username, tier_number, player_id
-        FROM user_picks
+        FROM picks
         WHERE tournament_id=%s
     """, (tournament_id,))
     rows = cursor.fetchall()
@@ -380,7 +381,7 @@ def show(conn, cursor, api_key):
             cur = conn.cursor()
             cur.execute("""
                 SELECT DISTINCT player_id
-                FROM user_picks
+                FROM picks
                 WHERE tournament_id = %s
             """, (tournament_id,))
 
@@ -415,7 +416,7 @@ def show(conn, cursor, api_key):
                             player_id = str(row["PlayerID"])
                             cursor.execute("""
                                 SELECT tier_number
-                                FROM weekly_tiers
+                                FROM tournament_tiers
                                 WHERE tournament_id = %s AND player_id = %s
                             """, (tournament_id, player_id))
                             tier_result = cursor.fetchone()

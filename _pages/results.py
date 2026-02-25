@@ -4,13 +4,13 @@ import pandas as pd
 
 def show(conn, cursor):
 
-    st.title("Past Results")
+    st.subheader("Past Results")
     st.write(" ")
 
     # Get all finalized tournaments, most recent first
     cursor.execute("""
         SELECT tournament_id, name, start_time
-        FROM tournaments_new
+        FROM tournaments
         WHERE is_finalized = TRUE
         ORDER BY start_time DESC
     """)
@@ -29,7 +29,7 @@ def show(conn, cursor):
     # Weekly totals for all users across all finalized tournaments
     cursor.execute("""
         SELECT tournament_id, username, points
-        FROM weekly_results
+        FROM tournament_scores
         WHERE tournament_id = ANY(%s)
     """, ([t["tournament_id"] for t in tournaments],))
     weekly_rows = cursor.fetchall()
@@ -52,7 +52,7 @@ def show(conn, cursor):
 
         with st.expander(f"**{tname}**"):#  —  {summary}"):
 
-            # Pull tiers_results for this tournament
+            # Pull pick_scores for this tournament
             cursor.execute("""
                 SELECT
                     tr.username,
@@ -62,7 +62,7 @@ def show(conn, cursor):
                     tr.tier_winner,
                     tr.missed_cut,
                     tr.points
-                FROM tiers_results tr
+                FROM pick_scores tr
                 JOIN players p ON CAST(p.player_id AS TEXT) = tr.player_id
                 WHERE tr.tournament_id = %s
                 ORDER BY tr.tier_number, tr.username
@@ -101,9 +101,9 @@ def show(conn, cursor):
                     cut = pick["missed_cut"]
 
                     row_data[col] = player.split()[-1] if player else "?"
-                    if winner:
+                    if winner and not cut:
                         style_data[col] = "background-color: #d4edda"
-                    elif cut:
+                    elif cut and not winner:
                         style_data[col] = "background-color: #f8d7da"
                     else:
                         style_data[col] = ""
@@ -167,4 +167,4 @@ def show(conn, cursor):
                 name_map[u]: st.column_config.TextColumn(name_map[u], width="small")
                 for u in usernames
             }
-            st.dataframe(styled, hide_index=True, use_container_width=True, column_config=column_config)
+            st.dataframe(styled, hide_index=True, column_config=column_config, use_container_width=True)

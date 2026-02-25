@@ -15,7 +15,7 @@ def show(conn, cursor, username):
     
     cursor.execute("""
         SELECT tournament_id, name, start_time 
-        FROM tournaments_new 
+        FROM tournaments 
         WHERE start_time + INTERVAL '5 days' > %s
         ORDER BY start_time ASC
         LIMIT 1
@@ -52,7 +52,7 @@ def show(conn, cursor, username):
             
             with col2:
                 cursor.execute("""
-                    SELECT player_id FROM user_picks
+                    SELECT player_id FROM picks
                     WHERE username=%s AND tournament_id=%s AND tier_number=%s
                 """, (username, tournament_id, tier_number))
                 existing = cursor.fetchone()
@@ -60,7 +60,7 @@ def show(conn, cursor, username):
                 if existing:
                     cursor.execute("""
                         SELECT p.player_id, p.name
-                        FROM weekly_tiers t
+                        FROM tournament_tiers t
                         JOIN players p ON CAST(p.player_id AS TEXT) = CAST(t.player_id AS TEXT)
                         WHERE t.tournament_id=%s AND t.tier_number=%s
                     """, (tournament_id, tier_number))
@@ -75,14 +75,14 @@ def show(conn, cursor, username):
         return
 
     # Tournament not locked - show selection form in 2-column layout
-    user_picks = {}
+    picks = {}
     
     for tier_number in range(1, 7):
 
         # Get players for this tier
         cursor.execute("""
             SELECT p.player_id, p.name
-            FROM weekly_tiers t
+            FROM tournament_tiers t
             JOIN players p ON CAST(p.player_id AS TEXT) = CAST(t.player_id AS TEXT)
             WHERE t.tournament_id=%s AND t.tier_number=%s
         """, (tournament_id, tier_number))
@@ -90,12 +90,12 @@ def show(conn, cursor, username):
         
         if not players:
             st.info("No players assigned to this tier")
-            user_picks[tier_number] = None
+            picks[tier_number] = None
             continue
 
         # Get existing pick for this user/tier
         cursor.execute("""
-            SELECT player_id FROM user_picks
+            SELECT player_id FROM picks
             WHERE username=%s AND tournament_id=%s AND tier_number=%s
         """, (username, tournament_id, tier_number))
         existing = cursor.fetchone()
@@ -125,14 +125,14 @@ def show(conn, cursor, username):
             )
             st.write("")  # Add spacing after selectbox
         
-        user_picks[tier_number] = player_options.get(choice_name) if choice_name else None
+        picks[tier_number] = player_options.get(choice_name) if choice_name else None
 
     st.write("")
     st.write("Be sure to hit save!")
     st.write("")
     
     # Validation check
-    missing_tiers = [tier for tier, pick in user_picks.items() if pick is None]
+    missing_tiers = [tier for tier, pick in picks.items() if pick is None]
     
     if missing_tiers:
         st.warning(f"⚠️ You Missed Tier {', Tier '.join(map(str, missing_tiers))}")
@@ -141,19 +141,19 @@ def show(conn, cursor, username):
     if st.button("💾 Save Picks", type="primary", disabled=bool(missing_tiers)):
         # Delete all existing picks for this tournament
         cursor.execute("""
-            DELETE FROM user_picks
+            DELETE FROM picks
             WHERE username=%s AND tournament_id=%s
         """, (username, tournament_id))
 
         now = datetime.now(timezone.utc)
         # Insert all new picks
-        for tier_number, player_id in user_picks.items():
+        for tier_number, player_id in picks.items():
             if player_id:  # Should always be true due to validation
                 # Create user_picks_id as concatenation
                 user_picks_id = f"{tournament_id}_{tier_number}_{username}"
                 
                 cursor.execute("""
-                    INSERT INTO user_picks (username, tournament_id, tier_number, player_id, timestamp, user_picks_id)
+                    INSERT INTO picks (username, tournament_id, tier_number, player_id, timestamp, user_picks_id)
                     VALUES (%s, %s, %s, %s, %s, %s)
                 """, (username, tournament_id, tier_number, player_id, now.isoformat(), user_picks_id))
         

@@ -113,7 +113,7 @@ def _parse_score(score):
 def finalize_tournament(conn, cursor, tournament, api_key):
     """
     Score a completed tournament and write results to the DB.
-    Uses tournament_player_results as a cache so the API is only hit once.
+    Uses player_score_cache as a cache so the API is only hit once.
     Returns (success: bool, message: str).
     """
     tournament_id = tournament["tournament_id"]
@@ -122,12 +122,12 @@ def finalize_tournament(conn, cursor, tournament, api_key):
     year = tournament.get("year") or "2026"
 
     if not tourn_id:
-        return False, f"No tourn_id set for {tournament_id} — update tournaments_new first."
+        return False, f"No tourn_id set for {tournament_id} — update tournaments first."
 
     try:
         # --- Step 1: Fetch & cache leaderboard if not already cached ---
         cursor.execute(
-            "SELECT player_id, player_name, score_to_par, status FROM tournament_player_results WHERE tournament_id = %s",
+            "SELECT player_id, player_name, score_to_par, status FROM player_score_cache WHERE tournament_id = %s",
             (tournament_id,)
         )
         cached_rows = cursor.fetchall()
@@ -139,7 +139,7 @@ def finalize_tournament(conn, cursor, tournament, api_key):
 
             for _, lb_row in leaderboard.iterrows():
                 cursor.execute("""
-                    INSERT INTO tournament_player_results
+                    INSERT INTO player_score_cache
                         (tournament_id, player_id, player_name, position, score_to_par, status)
                     VALUES (%s, %s, %s, %s, %s, %s)
                     ON CONFLICT (tournament_id, player_id) DO NOTHING
@@ -154,7 +154,7 @@ def finalize_tournament(conn, cursor, tournament, api_key):
             conn.commit()
 
             cursor.execute(
-                "SELECT player_id, player_name, score_to_par, status FROM tournament_player_results WHERE tournament_id = %s",
+                "SELECT player_id, player_name, score_to_par, status FROM player_score_cache WHERE tournament_id = %s",
                 (tournament_id,)
             )
             cached_rows = cursor.fetchall()
@@ -175,7 +175,7 @@ def finalize_tournament(conn, cursor, tournament, api_key):
 
         cursor.execute("""
             SELECT username, tier_number, player_id
-            FROM user_picks WHERE tournament_id = %s
+            FROM picks WHERE tournament_id = %s
         """, (tournament_id,))
         all_picks = cursor.fetchall()
 
@@ -222,7 +222,7 @@ def finalize_tournament(conn, cursor, tournament, api_key):
         valid_scores = [s for s in user_team_scores.values() if s != 999]
         best_team_score = min(valid_scores) if valid_scores else 999
 
-        # --- Step 6: Score each pick and write to tiers_results ---
+        # --- Step 6: Score each pick and write to pick_scores ---
         for pick in all_picks:
             uname = pick["username"]
             tier_number = int(pick["tier_number"])
@@ -237,28 +237,28 @@ def finalize_tournament(conn, cursor, tournament, api_key):
             if is_missed_cut:
                 points -= 1
 
-            tiers_results_id = f"{tournament_id}_{uname}_{tier_number}"
+            pick_scores_id = f"{tournament_id}_{uname}_{tier_number}"
             cursor.execute("""
-                INSERT INTO tiers_results
-                    (tiers_results_id, tournament_id, username, tier_number,
+                INSERT INTO pick_scores
+                    (pick_scores_id, tournament_id, username, tier_number,
                      player_id, points, tier_winner, missed_cut, player_score)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (tiers_results_id) DO UPDATE SET
+                ON CONFLICT (pick_scores_id) DO UPDATE SET
                     points = EXCLUDED.points,
                     tier_winner = EXCLUDED.tier_winner,
                     missed_cut = EXCLUDED.missed_cut,
                     player_score = EXCLUDED.player_score
             """, (
-                tiers_results_id, tournament_id, uname, tier_number,
+                pick_scores_id, tournament_id, uname, tier_number,
                 player_id, points, is_tier_winner, is_missed_cut,
                 score_text.get(player_id, "")
             ))
 
-        # --- Step 7: Write weekly_results (tier points + best-overall bonus) ---
+        # --- Step 7: Write tournament_scores (tier points + best-overall bonus) ---
         for uname in all_users:
             cursor.execute("""
                 SELECT COALESCE(SUM(points), 0) as total_points
-                FROM tiers_results
+                FROM pick_scores
                 WHERE tournament_id = %s AND username = %s
             """, (tournament_id, uname))
             total_points = cursor.fetchone()["total_points"]
@@ -266,16 +266,16 @@ def finalize_tournament(conn, cursor, tournament, api_key):
             if user_team_scores.get(uname, 999) == best_team_score and best_team_score != 999:
                 total_points += 1
 
-            weekly_results_id = f"{tournament_id}_{uname}"
+            tournament_scores_id = f"{tournament_id}_{uname}"
             cursor.execute("""
-                INSERT INTO weekly_results (tournament_id, username, points, weekly_results_id)
+                INSERT INTO tournament_scores (tournament_id, username, points, tournament_scores_id)
                 VALUES (%s, %s, %s, %s)
-                ON CONFLICT (weekly_results_id) DO UPDATE SET points = EXCLUDED.points
-            """, (tournament_id, uname, total_points, weekly_results_id))
+                ON CONFLICT (tournament_scores_id) DO UPDATE SET points = EXCLUDED.points
+            """, (tournament_id, uname, total_points, tournament_scores_id))
 
         # --- Step 8: Mark tournament as finalized ---
         cursor.execute("""
-            UPDATE tournaments_new
+            UPDATE tournaments
             SET is_finalized = TRUE, finalized_at = NOW()
             WHERE tournament_id = %s
         """, (tournament_id,))
@@ -295,7 +295,7 @@ now = datetime.now(timezone.utc)
 
 cursor.execute("""
     SELECT tournament_id, name, start_time, org_id, tourn_id, year
-    FROM tournaments_new
+    FROM tournaments
     WHERE start_time + INTERVAL '5 days' < %s
       AND is_finalized = FALSE
       AND tourn_id IS NOT NULL
@@ -310,12 +310,12 @@ for tournament in cursor.fetchall():
 # ----------------------------
 cursor.execute("""
     SELECT username, SUM(points) as total_points
-    FROM weekly_results
+    FROM tournament_scores
     GROUP BY username
 """)
 results = cursor.fetchall()
 
-# Get all users (in case some don't have any weekly_results yet)
+# Get all users (in case some don't have any tournament_scores yet)
 cursor.execute("SELECT username, name FROM users ORDER BY name")
 all_users = cursor.fetchall()
 user_name_map = {u["username"]: u["name"] for u in all_users}
@@ -413,7 +413,7 @@ if username in ADMINS:
 
         cursor.execute("""
             SELECT tournament_id, name
-            FROM tournaments_new
+            FROM tournaments
             ORDER BY start_time
         """)
         tournaments = cursor.fetchall()
@@ -430,7 +430,7 @@ if username in ADMINS:
 
                 cursor.execute("""
                     SELECT p.player_id, p.name
-                    FROM weekly_tiers t
+                    FROM tournament_tiers t
                     JOIN players p ON CAST(p.player_id AS TEXT) = CAST(t.player_id AS TEXT)
                     WHERE t.tournament_id = %s
                     AND t.tier_number = %s
@@ -445,7 +445,7 @@ if username in ADMINS:
 
                 cursor.execute("""
                     SELECT winning_player_id
-                    FROM weekly_tiers_results
+                    FROM tier_winners
                     WHERE tournament_id=%s AND tier_number=%s
                 """, (tournament_id, tier_number))
                 existing = cursor.fetchone()
@@ -466,7 +466,7 @@ if username in ADMINS:
 
                 if st.button("Save", key=f"save_{tournament_id}_{tier_number}"):
                     cursor.execute("""
-                        INSERT INTO weekly_tiers_results (tournament_id, tier_number, winning_player_id)
+                        INSERT INTO tier_winners (tournament_id, tier_number, winning_player_id)
                         VALUES (%s, %s, %s)
                         ON CONFLICT (tournament_id, tier_number)
                         DO UPDATE SET winning_player_id=EXCLUDED.winning_player_id
@@ -485,7 +485,7 @@ if username in ADMINS:
 
         cursor.execute("""
             SELECT tournament_id, name, start_time, org_id, tourn_id, year
-            FROM tournaments_new
+            FROM tournaments
             WHERE start_time < %s
               AND is_finalized = FALSE
               AND tourn_id IS NOT NULL
