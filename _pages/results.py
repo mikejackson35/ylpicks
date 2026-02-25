@@ -4,6 +4,9 @@ import pandas as pd
 
 def show(conn, cursor):
 
+    st.title("Past Results")
+    st.write(" ")
+
     # Get all finalized tournaments, most recent first
     cursor.execute("""
         SELECT tournament_id, name, start_time
