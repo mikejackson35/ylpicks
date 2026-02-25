@@ -231,7 +231,10 @@ def show(conn, cursor, api_key):
 
     # Insert team score row at the bottom
     team_score_df = pd.DataFrame([team_score_row], index=["Team Score"])
-    transposed_with_score = pd.concat([team_score_df, transposed_df])
+    if locked:
+        transposed_with_score = pd.concat([team_score_df, transposed_df])
+    else:
+        transposed_with_score = team_score_df
 
     # Modify cell values to add X for missed cuts (but NOT if they won tier)
     def add_missed_cut_symbol(s):

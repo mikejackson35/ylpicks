@@ -1,4 +1,5 @@
 import streamlit as st
+from datetime import datetime, timezone, timedelta
 
 
 def show(conn, cursor):
@@ -11,7 +12,6 @@ def show(conn, cursor):
     # ----------------------------
     st.markdown("**Set Up Tiers**")
 
-    # Tournament selector (most recent 15, desc)
     cursor.execute("""
         SELECT tournament_id, name, start_time
         FROM tournaments
@@ -23,8 +23,19 @@ def show(conn, cursor):
         st.info("No tournaments found.")
         return
 
+    # Default to current/upcoming tournament
+    now = datetime.now(timezone.utc)
+    current_tid = None
+    for t in tournaments:
+        if t["start_time"] + timedelta(days=5) > now:
+            current_tid = t["tournament_id"]
+            break
+
+    tourn_names = [t["name"] for t in tournaments]
     tourn_options = {t["name"]: t["tournament_id"] for t in tournaments}
-    selected_name = st.selectbox("Tournament", list(tourn_options.keys()), key="admin_tourn_select")
+    default_index = next((i for i, t in enumerate(tournaments) if t["tournament_id"] == current_tid), len(tournaments) - 1)
+
+    selected_name = st.selectbox("Tournament", tourn_names, index=default_index, key="admin_tourn_select")
     selected_tid = tourn_options[selected_name]
 
     st.write("")

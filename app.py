@@ -415,8 +415,9 @@ elif page == "Admin":
 # LOGOUT / PASSWORD
 # ----------------------------
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
-show_logout(conn)
+st.sidebar.success(f"Logged in as {name}")
 show_password_change(cursor, conn, username)
+show_logout(conn)
 
 # ----------------------------
 # ADMIN TOOLS

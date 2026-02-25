@@ -95,8 +95,7 @@ def show_signup(cursor, conn):
 def show_logout(conn):
     """Show logout button in sidebar"""
     with st.sidebar:
-        st.success(f"Logged in as {st.session_state['name']}")
-        if st.button("Logout", key="main_logout"):
+        if st.button("Logout", key="main_logout", use_container_width=True):
             st.session_state["authentication_status"] = None
             st.session_state["username"] = None
             st.session_state["name"] = None
