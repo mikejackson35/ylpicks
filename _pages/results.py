@@ -84,31 +84,32 @@ def show(conn, cursor):
 
             # One row per tier, one column per user
             table_rows = []
+            style_rows = []
             for tier_num in tiers:
                 row_data = {}
+                style_data = {}
                 for uname in usernames:
+                    col = name_map[uname]
                     pick = tier_data[tier_num].get(uname)
                     if not pick:
-                        row_data[name_map[uname]] = ""
+                        row_data[col] = ""
+                        style_data[col] = ""
                         continue
 
                     player = pick["player_name"]
                     winner = pick["tier_winner"]
                     cut = pick["missed_cut"]
 
-                    last_name = player.split()[-1] if player else "?"
-                    if winner and not cut:
-                        badge = " 🏆"
-                    elif winner and cut:
-                        badge = " 🏆✂️"
+                    row_data[col] = player.split()[-1] if player else "?"
+                    if winner:
+                        style_data[col] = "background-color: #d4edda"
                     elif cut:
-                        badge = " ✂️"
+                        style_data[col] = "background-color: #f8d7da"
                     else:
-                        badge = ""
-
-                    row_data[name_map[uname]] = f"{last_name}{badge}"
+                        style_data[col] = ""
 
                 table_rows.append(row_data)
+                style_rows.append(style_data)
 
             # Build team score row from pick_rows
             def parse_score(s):
@@ -130,19 +131,20 @@ def show(conn, cursor):
             best_total = min(valid_totals) if valid_totals else None
 
             team_row = {}
+            team_style = {}
             for uname in usernames:
+                col = name_map[uname]
                 total = user_team_totals.get(uname)
                 if total is None:
-                    team_row[name_map[uname]] = "-"
+                    team_row[col] = "-"
+                    team_style[col] = ""
                 else:
                     sign = "+" if total > 0 else ""
-                    trophy = " 🏆" if total == best_total else ""
-                    team_row[name_map[uname]] = f"{sign}{total}{trophy}"
+                    team_row[col] = f"{sign}{total}"
+                    team_style[col] = "background-color: #d4edda" if total == best_total else ""
 
             table_rows.append(team_row)
-
-            df = pd.DataFrame(table_rows)
-            st.dataframe(df, hide_index=True, use_container_width=True)
+            style_rows.append(team_style)
 
             points_html = '<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px;">'
             for uname in usernames:
@@ -153,8 +155,16 @@ def show(conn, cursor):
                     pts_display = f"+{pts}"
                 else:
                     pts_display = str(pts)
-                label = name_map[uname]
                 points_html += f'<div style="flex: 1 1 22%; font-size: 18px; text-align: left; text-indent: 10px;"><b>{pts_display}</b></div>'
             points_html += '</div>'
-            # st.write("")
             st.markdown(points_html, unsafe_allow_html=True)
+            st.write("")
+
+            df = pd.DataFrame(table_rows)
+            style_df = pd.DataFrame(style_rows, columns=df.columns)
+            styled = df.style.apply(lambda _: style_df, axis=None)
+            column_config = {
+                name_map[u]: st.column_config.TextColumn(name_map[u], width="small")
+                for u in usernames
+            }
+            st.dataframe(styled, hide_index=True, use_container_width=True, column_config=column_config)
